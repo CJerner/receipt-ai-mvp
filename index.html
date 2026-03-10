@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Kvitterings bogføring</title>
+</head>
+
+<body>
+
+<h1>Upload kvittering</h1>
+
+<input type="file" id="receiptImage" />
+
+<button onclick="uploadReceipt()">Analyser kvittering</button>
+
+<p id="result"></p>
+
+<script>
+
+async function uploadReceipt() {
+
+let file = document.getElementById("receiptImage").files[0];
+
+let formData = new FormData();
+formData.append("file", file);
+
+let response = await fetch("DIN_BACKEND_URL", {
+method: "POST",
+body: formData
+});
+
+let data = await response.json();
+
+document.getElementById("result").innerText =
+"Kategori: " + data.category + " | Beløb: " + data.amount;
+
+}
+
+</script>
+
+</body>
+</html>
