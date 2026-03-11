@@ -16,7 +16,6 @@
 
 <script>
 async function uploadReceipt() {
-    // Hent filen (i første omgang bruges kun filnavn til test)
     let file = document.getElementById("receiptImage").files[0];
     if (!file) {
         document.getElementById("result").innerText = "Vælg venligst en fil først.";
@@ -24,7 +23,6 @@ async function uploadReceipt() {
     }
 
     let formData = new FormData();
-    // Send faktisk fil til backend
     formData.append("file", file);
 
     try {
@@ -33,10 +31,11 @@ async function uploadReceipt() {
             body: formData
         });
 
-        let data = await response.json();
+        // Læs backend-output som tekst i stedet for JSON
+        let text = await response.text();
 
-        // Brug 'result', som din backend faktisk returnerer
-        document.getElementById("result").innerText = data.result;
+        // Vis det direkte på siden
+        document.getElementById("result").innerText = text;
 
     } catch (error) {
         document.getElementById("result").innerText = "Fejl: " + error;
