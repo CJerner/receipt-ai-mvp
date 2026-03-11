@@ -23,7 +23,7 @@ let file = document.getElementById("receiptImage").files[0];
 let formData = new FormData();
 formData.append("file", file);
 
-let response = await fetch("DIN_BACKEND_URL", {
+let response = await fetch("/api/analyze", {
 method: "POST",
 body: formData
 });
