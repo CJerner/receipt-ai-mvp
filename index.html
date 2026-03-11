@@ -15,26 +15,33 @@
 <p id="result"></p>
 
 <script>
-
 async function uploadReceipt() {
+    // Hent filen (i første omgang bruges kun filnavn til test)
+    let file = document.getElementById("receiptImage").files[0];
+    if (!file) {
+        document.getElementById("result").innerText = "Vælg venligst en fil først.";
+        return;
+    }
 
-let file = document.getElementById("receiptImage").files[0];
+    let formData = new FormData();
+    // Send faktisk fil til backend
+    formData.append("file", file);
 
-let formData = new FormData();
-formData.append("file", file);
+    try {
+        let response = await fetch("/api/analyze", {
+            method: "POST",
+            body: formData
+        });
 
-let response = await fetch("/api/analyze", {
-method: "POST",
-body: formData
-});
+        let data = await response.json();
 
-let data = await response.json();
+        // Brug 'result', som din backend faktisk returnerer
+        document.getElementById("result").innerText = data.result;
 
-document.getElementById("result").innerText =
-"Kategori: " + data.category + " | Beløb: " + data.amount;
-
+    } catch (error) {
+        document.getElementById("result").innerText = "Fejl: " + error;
+    }
 }
-
 </script>
 
 </body>
