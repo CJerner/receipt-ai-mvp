@@ -1,47 +1,455 @@
 <!DOCTYPE html>
-<html>
+<html lang="da">
 <head>
-<title>AI Kvitterings bogføring</title>
-</head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kvitteringsanalyse</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --bg: #F5F2EC;
+    --ink: #1A1814;
+    --accent: #2D5A3D;
+    --accent-light: #E8F0EA;
+    --muted: #8A8780;
+    --border: #D8D4CC;
+    --white: #FDFCFA;
+    --error: #C0392B;
+    --serif: 'Instrument Serif', Georgia, serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.5rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    width: 100%;
+    max-width: 560px;
+    padding: 2.5rem;
+    box-shadow: 4px 4px 0px var(--border);
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 2px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    background: var(--bg);
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .drop-label {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  .drop-hint {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Preview */
+  .preview-wrap {
+    display: none;
+    margin-top: 1.25rem;
+    position: relative;
+  }
+
+  .preview-wrap img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+
+  .preview-name {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    letter-spacing: 0.03em;
+  }
+
+  .btn-remove {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--ink);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* Button */
+  .btn-analyze {
+    margin-top: 1.5rem;
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+    background: var(--accent);
+    color: var(--white);
+    border: none;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-analyze:hover:not(:disabled) {
+    background: #1e3f2a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(45,90,61,0.25);
+  }
+
+  .btn-analyze:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Spinner */
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Result */
+  .result-section {
+    display: none;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .result-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .result-grid {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+  }
+
+  .result-row:last-child { border-bottom: none; }
+
+  .row-key {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+
+  .row-val {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    color: var(--ink);
+    text-align: right;
+  }
+
+  .row-val.amount {
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+
+  /* Raw / fallback */
+  .result-raw {
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1rem;
+  }
+
+  .error-msg {
+    font-size: 0.8rem;
+    color: var(--error);
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: #fdf0ef;
+    border-left: 3px solid var(--error);
+    border-radius: 0 2px 2px 0;
+  }
+
+  footer {
+    margin-top: 3rem;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-align: center;
+  }
+</style>
+</head>
 <body>
 
-<h1>Upload kvittering</h1>
+<header>
+  <p class="eyebrow">AI · Bogføring</p>
+  <h1>Analyser din<br><em>kvittering</em></h1>
+  <p class="subtitle">Upload et billede — vi udtrækker dato, beløb og kategori automatisk</p>
+</header>
 
-<input type="file" id="receiptImage" />
+<div class="card">
 
-<button onclick="uploadReceipt()">Analyser kvittering</button>
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="receiptImage" accept="image/*" onchange="handleFile(this.files[0])">
+    <span class="drop-icon">🧾</span>
+    <span class="drop-label">Træk kvittering hertil</span>
+    <span class="drop-hint">eller klik for at vælge · JPG, PNG, WEBP</span>
+  </div>
 
-<p id="result"></p>
+  <div class="preview-wrap" id="previewWrap">
+    <img id="previewImg" src="" alt="Preview">
+    <button class="btn-remove" onclick="removeFile()" title="Fjern">✕</button>
+    <p class="preview-name" id="previewName"></p>
+  </div>
+
+  <button class="btn-analyze" id="analyzeBtn" onclick="uploadReceipt()" disabled>
+    <span class="spinner" id="spinner"></span>
+    <span id="btnText">Analyser kvittering</span>
+  </button>
+
+  <div class="error-msg" id="errorMsg" style="display:none"></div>
+
+  <div class="result-section" id="resultSection">
+    <p class="result-label">Resultat</p>
+    <div class="result-grid" id="resultGrid"></div>
+  </div>
+
+</div>
+
+<footer>Drevet af OpenAI Vision · Data gemmes ikke</footer>
 
 <script>
-async function uploadReceipt() {
-    let file = document.getElementById("receiptImage").files[0];
-    if (!file) {
-        document.getElementById("result").innerText = "Vælg venligst en fil først.";
-        return;
-    }
+  const dropZone = document.getElementById('dropZone');
+  let currentFile = null;
 
-    let formData = new FormData();
-    formData.append("file", file);
+  // Drag & drop events
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    currentFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewName').textContent = file.name + ' · ' + (file.size / 1024).toFixed(0) + ' KB';
+      document.getElementById('previewWrap').style.display = 'block';
+      document.getElementById('analyzeBtn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+    // Reset result
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  function removeFile() {
+    currentFile = null;
+    document.getElementById('previewWrap').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('receiptImage').value = '';
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  async function uploadReceipt() {
+    if (!currentFile) return;
+
+    const btn = document.getElementById('analyzeBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+    const errorMsg = document.getElementById('errorMsg');
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Analyserer...';
+    errorMsg.style.display = 'none';
+    document.getElementById('resultSection').style.display = 'none';
 
     try {
-        let response = await fetch("/api/analyze", {
-            method: "POST",
-            body: formData
-        });
+      const formData = new FormData();
+      formData.append('file', currentFile);
 
-        // Læs backend-output som tekst i stedet for JSON
-        let text = await response.text();
+      const response = await fetch('/api/analyze', { method: 'POST', body: formData });
+      const text = await response.text();
 
-        // Vis det direkte på siden
-        document.getElementById("result").innerText = text;
+      if (!response.ok) throw new Error(text || 'Serverfejl');
 
-    } catch (error) {
-        document.getElementById("result").innerText = "Fejl: " + error;
+      renderResult(text);
+    } catch (err) {
+      errorMsg.textContent = 'Fejl: ' + err.message;
+      errorMsg.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = 'Analyser igen';
     }
-}
-</script>
+  }
 
+  function renderResult(text) {
+    const section = document.getElementById('resultSection');
+    const grid = document.getElementById('resultGrid');
+    grid.innerHTML = '';
+
+    // Forsøg at parse JSON
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      const data = JSON.parse(clean);
+
+      const labels = {
+        dato: 'Dato',
+        leverandør: 'Leverandør',
+        beløb_inkl_moms: 'Beløb inkl. moms',
+        moms: 'Moms',
+        moms_procent: 'Momssats',
+        kategori: 'Kategori',
+        betalingsmetode: 'Betalingsmetode',
+        valuta: 'Valuta',
+        beskrivelse: 'Beskrivelse'
+      };
+
+      for (const [key, label] of Object.entries(labels)) {
+        if (data[key] === undefined || data[key] === null) continue;
+        const row = document.createElement('div');
+        row.className = 'result-row';
+        const isAmount = key === 'beløb_inkl_moms' || key === 'moms';
+        const val = typeof data[key] === 'number'
+          ? data[key].toLocaleString('da-DK', { minimumFractionDigits: 2 }) + (key.includes('moms') && key !== 'moms_procent' ? ' kr.' : '')
+          : data[key];
+        row.innerHTML = `<span class="row-key">${label}</span><span class="row-val ${isAmount ? 'amount' : ''}">${val}</span>`;
+        grid.appendChild(row);
+      }
+
+      // Vis rå JSON hvis ingen kendte felter
+      if (grid.children.length === 0) throw new Error('Ingen kendte felter');
+
+    } catch {
+      // Fallback: vis rå tekst
+      const pre = document.createElement('pre');
+      pre.className = 'result-raw';
+      pre.textContent = text;
+      grid.appendChild(pre);
+    }
+
+    section.style.display = 'block';
+  }
+</script>
 </body>
 </html>
