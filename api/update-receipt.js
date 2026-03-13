@@ -10,15 +10,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Only POST allowed" });
   }
 
-  const { id, account } = req.body;
+  const { id, ...updates } = req.body;
 
-  if (!id || !account) {
-    return res.status(400).json({ error: "id og account er påkrævet" });
+  if (!id) {
+    return res.status(400).json({ error: "id er påkrævet" });
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: "Ingen felter at opdatere" });
   }
 
   const { error } = await supabase
     .from("receipts")
-    .update({ account })
+    .update(updates)
     .eq("id", id);
 
   if (error) {
