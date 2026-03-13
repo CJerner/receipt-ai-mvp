@@ -177,41 +177,157 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 
 .result-row:last-child { border-bottom: none; }
-
 .row-key { font-size: .7rem; color: var(--muted); letter-spacing: .1em; flex-shrink: 0; }
 .row-val { font-family: var(--serif); font-size: 1rem; text-align: right; }
 .row-val.amount { color: var(--accent); font-size: 1.2rem; }
 
+/* Kvitteringsliste */
 .receipts-list { margin-top: 1rem; }
 
-.receipt-item {
+.list-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  padding: .75rem 0;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.total-badge {
+  font-family: var(--serif);
+  font-size: .95rem;
+  color: var(--accent);
+}
+
+.receipt-item {
   border-bottom: 1px solid var(--border);
-  gap: 1rem;
+  padding: .75rem 0;
 }
 
 .receipt-item:last-child { border-bottom: none; }
-.receipt-meta { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
-.receipt-amount { font-family: var(--serif); font-size: 1.1rem; color: var(--accent); white-space: nowrap; }
 
-.empty-state { font-size: .8rem; color: var(--muted); text-align: center; padding: 2rem 0; }
+.receipt-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
 
-footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: center; }
+.receipt-summary-left { flex: 1; }
+
+.receipt-vendor {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+}
+
+.receipt-meta {
+  font-size: .72rem;
+  color: var(--muted);
+  margin-top: .2rem;
+}
+
+.receipt-summary-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .3rem;
+  flex-shrink: 0;
+}
+
+.receipt-amount {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.receipt-amount-ex {
+  font-size: .68rem;
+  color: var(--muted);
+}
+
+.receipt-actions {
+  display: flex;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+
+.btn-edit {
+  font-family: var(--mono);
+  font-size: .65rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .25rem .6rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all .15s;
+}
+
+.btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-delete {
+  font-family: var(--mono);
+  font-size: .65rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .25rem .6rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all .15s;
+}
+
+.btn-delete:hover { border-color: var(--error); color: var(--error); }
+
+/* Edit panel */
+.edit-panel {
+  display: none;
+  margin-top: .75rem;
+  padding: .75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  display: none;
+  grid-gap: 4px;
+}
+
+.edit-panel.open { display: grid; }
 
 .edit-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
 .edit-row label { width: 70px; color: var(--muted); flex-shrink: 0; }
 .edit-row input {
   flex: 1;
-  padding: 2px 6px;
+  padding: 3px 6px;
   font-family: var(--mono);
   font-size: 11px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--white);
   border-radius: 2px;
+  transition: border-color .15s;
 }
+
+.edit-row input:focus { outline: none; border-color: var(--accent); }
+
+.edit-status { font-size: 10px; height: 14px; display: block; color: var(--muted); }
+
+/* Total footer */
+.list-footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1.5px solid var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.list-footer-label { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.list-footer-total { font-family: var(--serif); font-size: 1.3rem; color: var(--ink); }
+
+.empty-state { font-size: .8rem; color: var(--muted); text-align: center; padding: 2rem 0; }
+
+footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
@@ -249,9 +365,16 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 </div>
 
 <div class="card">
-  <p class="section-label">Mine kvitteringer</p>
+  <div class="list-header">
+    <p class="section-label" style="margin-bottom:0">Mine kvitteringer</p>
+    <span class="total-badge" id="totalBadge"></span>
+  </div>
   <div class="receipts-list" id="receiptsList">
     <p class="empty-state">Henter kvitteringer...</p>
+  </div>
+  <div class="list-footer" id="listFooter" style="display:none">
+    <span class="list-footer-label">Total inkl. moms</span>
+    <span class="list-footer-total" id="listTotal"></span>
   </div>
 </div>
 
@@ -376,43 +499,63 @@ async function loadReceipts() {
 
     if (!receipts.length) {
       list.innerHTML = '<p class="empty-state">Ingen kvitteringer endnu</p>';
+      document.getElementById('listFooter').style.display = 'none';
+      document.getElementById('totalBadge').textContent = '';
       return;
     }
+
+    // Beregn total
+    const total = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const totalEx = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0) - (Number(r.vat) || 0), 0);
+
+    document.getElementById('totalBadge').textContent = receipts.length + ' kvitteringer';
+    document.getElementById('listTotal').textContent = total.toLocaleString('da-DK', { minimumFractionDigits: 2 }) + ' kr.';
+    document.getElementById('listFooter').style.display = 'flex';
 
     list.innerHTML = receipts.map(r => {
       const amount = r.amount
         ? Number(r.amount).toLocaleString('da-DK', { minimumFractionDigits: 2 }) + ' kr.'
         : '';
+      const amountEx = r.amount && r.vat
+        ? (Number(r.amount) - Number(r.vat)).toLocaleString('da-DK', { minimumFractionDigits: 2 }) + ' kr. ex. moms'
+        : '';
       const date = r.date
         ? new Date(r.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
         : '';
       return `
-        <div class="receipt-item" data-id="${r.id}">
-          <div style="flex:1">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <strong>${r.vendor || 'Ukendt leverandør'}</strong>
+        <div class="receipt-item" id="item-${r.id}">
+          <div class="receipt-summary">
+            <div class="receipt-summary-left">
+              <div class="receipt-vendor">${r.vendor || 'Ukendt leverandør'}</div>
+              <div class="receipt-meta">${date}${r.category ? ' · ' + r.category : ''}${r.account ? ' · Konto ' + r.account : ''}</div>
+              <div class="receipt-actions">
+                <button class="btn-edit" onclick="toggleEdit('${r.id}')">Rediger</button>
+                <button class="btn-delete" onclick="deleteReceipt('${r.id}')">Slet</button>
+              </div>
+            </div>
+            <div class="receipt-summary-right">
               <div class="receipt-amount">${amount}</div>
+              ${amountEx ? `<div class="receipt-amount-ex">${amountEx}</div>` : ''}
             </div>
-            <div class="receipt-meta">${date}</div>
-            <div class="edit-fields" style="margin-top:8px;display:grid;gap:4px">
-              <div class="edit-row">
-                <label>Leverandør</label>
-                <input value="${r.vendor || ''}" onchange="updateField('${r.id}', 'vendor', this.value, this)">
-              </div>
-              <div class="edit-row">
-                <label>Kategori</label>
-                <input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)">
-              </div>
-              <div class="edit-row">
-                <label>Dato</label>
-                <input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)">
-              </div>
-              <div class="edit-row">
-                <label>Konto</label>
-                <input value="${r.account || ''}" placeholder="fx 3000" onchange="updateField('${r.id}', 'account', this.value, this)">
-              </div>
-              <span id="status-${r.id}" style="font-size:10px;height:14px;display:block"></span>
+          </div>
+          <div class="edit-panel" id="edit-${r.id}">
+            <div class="edit-row">
+              <label>Leverandør</label>
+              <input value="${r.vendor || ''}" onchange="updateField('${r.id}', 'vendor', this.value, this)">
             </div>
+            <div class="edit-row">
+              <label>Kategori</label>
+              <input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)">
+            </div>
+            <div class="edit-row">
+              <label>Dato</label>
+              <input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)">
+            </div>
+            <div class="edit-row">
+              <label>Konto</label>
+              <input value="${r.account || ''}" placeholder="fx 3000" onchange="updateField('${r.id}', 'account', this.value, this)">
+            </div>
+            <span class="edit-status" id="status-${r.id}"></span>
           </div>
         </div>`;
     }).join('');
@@ -420,6 +563,14 @@ async function loadReceipts() {
   } catch {
     list.innerHTML = '<p class="empty-state">Kunne ikke hente kvitteringer</p>';
   }
+}
+
+function toggleEdit(id) {
+  const panel = document.getElementById('edit-' + id);
+  const btn = panel.previousElementSibling.querySelector('.btn-edit');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open');
+  btn.textContent = isOpen ? 'Rediger' : 'Luk';
 }
 
 async function updateField(id, field, value, inputEl) {
@@ -430,21 +581,30 @@ async function updateField(id, field, value, inputEl) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, [field]: value })
     });
-
     if (!res.ok) throw new Error();
-
     inputEl.style.borderColor = '#2D5A3D';
     statusEl.textContent = '✓ Gemt';
     statusEl.style.color = '#2D5A3D';
-    setTimeout(() => {
-      inputEl.style.borderColor = '';
-      statusEl.textContent = '';
-    }, 2000);
-
+    setTimeout(() => { inputEl.style.borderColor = ''; statusEl.textContent = ''; }, 2000);
   } catch {
     inputEl.style.borderColor = '#C0392B';
     statusEl.textContent = '✗ Fejl ved gemning';
     statusEl.style.color = '#C0392B';
+  }
+}
+
+async function deleteReceipt(id) {
+  if (!confirm('Er du sikker på du vil slette denne kvittering?')) return;
+  try {
+    const res = await fetch('/api/delete-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) throw new Error();
+    loadReceipts();
+  } catch {
+    alert('Kunne ikke slette kvittering');
   }
 }
 
