@@ -402,7 +402,30 @@ async function loadReceipts() {
     list.innerHTML = '<p class="empty-state">Kunne ikke hente kvitteringer</p>';
   }
 }
+async function updateAccount(id, account) {
 
+  try {
+
+    await fetch("/api/updateReceipt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id: id,
+        account: account
+      })
+    });
+
+    console.log("Konto opdateret");
+
+  } catch (err) {
+
+    console.error("Fejl ved opdatering:", err);
+
+  }
+
+}
 loadReceipts();
 </script>
 </body>
