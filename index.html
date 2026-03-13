@@ -378,7 +378,11 @@ async function loadReceipts() {
         <div class="receipt-item">
           <div>
             <div>${r.vendor || 'Ukendt leverandør'}</div>
-            <div class="receipt-meta">${date}${r.category ? ' · ' + r.category : ''}</div>
+            <div class="receipt-meta">
+              ${date}
+              ${r.category ? ' · ' + r.category : ''}
+              ${r.account_name ? ' · ' + r.account_name + ' (' + r.account + ')' : ''}
+            </div>
           </div>
           <div class="receipt-amount">${amount}</div>
         </div>`;
