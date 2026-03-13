@@ -95,6 +95,7 @@ Hvis noget ikke kan aflæses, brug null.`
     try {
       const clean = content.replace(/```json|```/g, "").trim();
       receipt = JSON.parse(clean);
+      console.log("AI svar:", JSON.stringify(receipt, null, 2)); // ← HER
     } catch {
       return res.status(500).json({
         error: "AI returnerede ikke valid JSON",
