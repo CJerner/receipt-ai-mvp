@@ -181,7 +181,7 @@ h1 em { font-style: italic; color: var(--accent); }
 .row-val { font-family: var(--serif); font-size: 1rem; text-align: right; }
 .row-val.amount { color: var(--accent); font-size: 1.2rem; }
 
-/* Kvitteringsliste */
+/* Liste */
 .receipts-list { margin-top: 1rem; }
 
 .list-header {
@@ -191,11 +191,25 @@ h1 em { font-style: italic; color: var(--accent); }
   margin-bottom: 1rem;
 }
 
-.total-badge {
-  font-family: var(--serif);
-  font-size: .95rem;
+.total-badge { font-size: .72rem; color: var(--muted); }
+
+.btn-csv {
+  font-family: var(--mono);
+  font-size: .65rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .35rem .75rem;
+  border: 1px solid var(--accent);
+  background: transparent;
   color: var(--accent);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all .15s;
+  text-decoration: none;
+  display: inline-block;
 }
+
+.btn-csv:hover { background: var(--accent); color: white; }
 
 .receipt-item {
   border-bottom: 1px solid var(--border);
@@ -212,17 +226,8 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 
 .receipt-summary-left { flex: 1; }
-
-.receipt-vendor {
-  font-family: var(--serif);
-  font-size: 1.05rem;
-}
-
-.receipt-meta {
-  font-size: .72rem;
-  color: var(--muted);
-  margin-top: .2rem;
-}
+.receipt-vendor { font-family: var(--serif); font-size: 1.05rem; }
+.receipt-meta { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
 
 .receipt-summary-right {
   display: flex;
@@ -232,16 +237,8 @@ h1 em { font-style: italic; color: var(--accent); }
   flex-shrink: 0;
 }
 
-.receipt-amount {
-  font-family: var(--serif);
-  font-size: 1.1rem;
-  color: var(--accent);
-}
-
-.receipt-amount-ex {
-  font-size: .68rem;
-  color: var(--muted);
-}
+.receipt-amount { font-family: var(--serif); font-size: 1.1rem; color: var(--accent); }
+.receipt-amount-ex { font-size: .68rem; color: var(--muted); }
 
 .receipt-actions {
   display: flex;
@@ -249,7 +246,7 @@ h1 em { font-style: italic; color: var(--accent); }
   margin-top: .5rem;
 }
 
-.btn-edit {
+.btn-edit, .btn-delete {
   font-family: var(--mono);
   font-size: .65rem;
   letter-spacing: .1em;
@@ -264,21 +261,6 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 
 .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
-
-.btn-delete {
-  font-family: var(--mono);
-  font-size: .65rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  padding: .25rem .6rem;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  border-radius: 2px;
-  transition: all .15s;
-}
-
 .btn-delete:hover { border-color: var(--error); color: var(--error); }
 
 /* Edit panel */
@@ -289,8 +271,7 @@ h1 em { font-style: italic; color: var(--accent); }
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 2px;
-  display: none;
-  grid-gap: 4px;
+  gap: 4px;
 }
 
 .edit-panel.open { display: grid; }
@@ -309,8 +290,19 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 
 .edit-row input:focus { outline: none; border-color: var(--accent); }
+.edit-status { font-size: 10px; height: 14px; display: block; }
 
-.edit-status { font-size: 10px; height: 14px; display: block; color: var(--muted); }
+/* Billed thumbnail */
+.receipt-thumb {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  margin-top: .75rem;
+  display: block;
+  cursor: pointer;
+}
 
 /* Total footer */
 .list-footer {
@@ -326,7 +318,6 @@ h1 em { font-style: italic; color: var(--accent); }
 .list-footer-total { font-family: var(--serif); font-size: 1.3rem; color: var(--ink); }
 
 .empty-state { font-size: .8rem; color: var(--muted); text-align: center; padding: 2rem 0; }
-
 footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: center; }
 </style>
 </head>
@@ -367,7 +358,10 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <div class="card">
   <div class="list-header">
     <p class="section-label" style="margin-bottom:0">Mine kvitteringer</p>
-    <span class="total-badge" id="totalBadge"></span>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span class="total-badge" id="totalBadge"></span>
+      <a class="btn-csv" href="/api/export-csv" download>↓ Eksport CSV</a>
+    </div>
   </div>
   <div class="receipts-list" id="receiptsList">
     <p class="empty-state">Henter kvitteringer...</p>
@@ -378,7 +372,7 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
   </div>
 </div>
 
-<footer>Drevet af OpenAI Vision · Data gemmes ikke eksternt</footer>
+<footer>Drevet af OpenAI Vision · Billeder gemt i Supabase Storage</footer>
 
 <script>
 const LABELS = {
@@ -504,10 +498,7 @@ async function loadReceipts() {
       return;
     }
 
-    // Beregn total
     const total = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalEx = receipts.reduce((sum, r) => sum + (Number(r.amount) || 0) - (Number(r.vat) || 0), 0);
-
     document.getElementById('totalBadge').textContent = receipts.length + ' kvitteringer';
     document.getElementById('listTotal').textContent = total.toLocaleString('da-DK', { minimumFractionDigits: 2 }) + ' kr.';
     document.getElementById('listFooter').style.display = 'flex';
@@ -521,6 +512,9 @@ async function loadReceipts() {
         : '';
       const date = r.date
         ? new Date(r.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '';
+      const thumb = r.image_url
+        ? `<img class="receipt-thumb" src="${r.image_url}" alt="Kvittering" onclick="window.open('${r.image_url}', '_blank')">`
         : '';
       return `
         <div class="receipt-item" id="item-${r.id}">
@@ -538,6 +532,7 @@ async function loadReceipts() {
               ${amountEx ? `<div class="receipt-amount-ex">${amountEx}</div>` : ''}
             </div>
           </div>
+          ${thumb}
           <div class="edit-panel" id="edit-${r.id}">
             <div class="edit-row">
               <label>Leverandør</label>
@@ -567,7 +562,7 @@ async function loadReceipts() {
 
 function toggleEdit(id) {
   const panel = document.getElementById('edit-' + id);
-  const btn = panel.previousElementSibling.querySelector('.btn-edit');
+  const btn = panel.previousElementSibling.previousElementSibling.querySelector('.btn-edit');
   const isOpen = panel.classList.contains('open');
   panel.classList.toggle('open');
   btn.textContent = isOpen ? 'Rediger' : 'Luk';
