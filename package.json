@@ -2,6 +2,7 @@
   "name": "receipt-ai-mvp",
   "version": "1.0.0",
   "dependencies": {
-    "formidable": "^3.5.1"
+    "formidable": "^3.5.1",
+    "@supabase/supabase-js": "^2.45.0"
   }
 }
