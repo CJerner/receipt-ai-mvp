@@ -200,6 +200,18 @@ h1 em { font-style: italic; color: var(--accent); }
 .empty-state { font-size: .8rem; color: var(--muted); text-align: center; padding: 2rem 0; }
 
 footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: center; }
+
+.edit-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.edit-row label { width: 70px; color: var(--muted); flex-shrink: 0; }
+.edit-row input {
+  flex: 1;
+  padding: 2px 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 2px;
+}
 </style>
 </head>
 <body>
@@ -382,29 +394,23 @@ async function loadReceipts() {
               <div class="receipt-amount">${amount}</div>
             </div>
             <div class="receipt-meta">${date}</div>
-
             <div class="edit-fields" style="margin-top:8px;display:grid;gap:4px">
-
               <div class="edit-row">
                 <label>Leverandør</label>
                 <input value="${r.vendor || ''}" onchange="updateField('${r.id}', 'vendor', this.value, this)">
               </div>
-
               <div class="edit-row">
                 <label>Kategori</label>
                 <input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)">
               </div>
-
               <div class="edit-row">
                 <label>Dato</label>
                 <input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)">
               </div>
-
               <div class="edit-row">
                 <label>Konto</label>
                 <input value="${r.account || ''}" placeholder="fx 3000" onchange="updateField('${r.id}', 'account', this.value, this)">
               </div>
-
               <span id="status-${r.id}" style="font-size:10px;height:14px;display:block"></span>
             </div>
           </div>
