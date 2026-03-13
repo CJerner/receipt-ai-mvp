@@ -376,23 +376,38 @@ async function loadReceipts() {
         : '';
       return `
         <div class="receipt-item" data-id="${r.id}">
-          <div>
-            <div>${r.vendor || 'Ukendt leverandør'}</div>
-            <div class="receipt-meta">
-              ${date}${r.category ? ' · ' + r.category : ''}
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <strong>${r.vendor || 'Ukendt leverandør'}</strong>
+              <div class="receipt-amount">${amount}</div>
             </div>
-            <div style="margin-top:4px;font-size:12px;color:var(--muted)">
-              Konto:
-              <input
-                id="account-${r.id}"
-                value="${r.account || ''}"
-                onchange="updateAccount('${r.id}', this.value, this)"
-                style="width:70px;padding:2px;font-family:var(--mono);font-size:11px;border:1px solid var(--border);background:var(--bg);border-radius:2px"
-              >
-              <span id="status-${r.id}" style="margin-left:4px;font-size:10px"></span>
+            <div class="receipt-meta">${date}</div>
+
+            <div class="edit-fields" style="margin-top:8px;display:grid;gap:4px">
+
+              <div class="edit-row">
+                <label>Leverandør</label>
+                <input value="${r.vendor || ''}" onchange="updateField('${r.id}', 'vendor', this.value, this)">
+              </div>
+
+              <div class="edit-row">
+                <label>Kategori</label>
+                <input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)">
+              </div>
+
+              <div class="edit-row">
+                <label>Dato</label>
+                <input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)">
+              </div>
+
+              <div class="edit-row">
+                <label>Konto</label>
+                <input value="${r.account || ''}" placeholder="fx 3000" onchange="updateField('${r.id}', 'account', this.value, this)">
+              </div>
+
+              <span id="status-${r.id}" style="font-size:10px;height:14px;display:block"></span>
             </div>
           </div>
-          <div class="receipt-amount">${amount}</div>
         </div>`;
     }).join('');
 
@@ -401,18 +416,17 @@ async function loadReceipts() {
   }
 }
 
-async function updateAccount(id, account, inputEl) {
+async function updateField(id, field, value, inputEl) {
   const statusEl = document.getElementById('status-' + id);
   try {
     const res = await fetch('/api/update-receipt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, account })
+      body: JSON.stringify({ id, [field]: value })
     });
 
     if (!res.ok) throw new Error();
 
-    // Grøn bekræftelse
     inputEl.style.borderColor = '#2D5A3D';
     statusEl.textContent = '✓ Gemt';
     statusEl.style.color = '#2D5A3D';
@@ -421,12 +435,10 @@ async function updateAccount(id, account, inputEl) {
       statusEl.textContent = '';
     }, 2000);
 
-  } catch (err) {
-    // Rød fejl
+  } catch {
     inputEl.style.borderColor = '#C0392B';
-    statusEl.textContent = '✗ Fejl';
+    statusEl.textContent = '✗ Fejl ved gemning';
     statusEl.style.color = '#C0392B';
-    console.error('Fejl ved opdatering:', err);
   }
 }
 
