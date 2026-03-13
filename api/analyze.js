@@ -6,7 +6,6 @@ export const config = {
   api: { bodyParser: false }
 };
 
-// Supabase forbindelse
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
@@ -32,7 +31,25 @@ export default async function handler(req, res) {
     const base64Image = imageBuffer.toString("base64");
     const mimeType = file.mimetype || "image/jpeg";
 
-    // 3. Send billede til OpenAI
+    // 3. Upload billede til Supabase Storage
+    const ext = mimeType.split("/")[1] || "jpg";
+    const filename = `${Date.now()}.${ext}`;
+    let imageUrl = null;
+
+    const { error: storageError } = await supabase.storage
+      .from("receipts")
+      .upload(filename, imageBuffer, { contentType: mimeType });
+
+    if (storageError) {
+      console.error("Storage fejl:", storageError);
+    } else {
+      const { data: urlData } = supabase.storage
+        .from("receipts")
+        .getPublicUrl(filename);
+      imageUrl = urlData?.publicUrl || null;
+    }
+
+    // 4. Send billede til OpenAI
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -89,13 +106,12 @@ Hvis noget ikke kan aflæses, brug null.`
       return res.status(500).json({ error: "OpenAI svar fejl", debug: data });
     }
 
-    // 4. Parse AI svar
+    // 5. Parse AI svar
     const content = data.choices[0].message.content;
     let receipt;
     try {
       const clean = content.replace(/```json|```/g, "").trim();
       receipt = JSON.parse(clean);
-      console.log("AI svar:", JSON.stringify(receipt, null, 2)); // ← HER
     } catch {
       return res.status(500).json({
         error: "AI returnerede ikke valid JSON",
@@ -103,7 +119,7 @@ Hvis noget ikke kan aflæses, brug null.`
       });
     }
 
-    // 5. Gem i Supabase
+    // 6. Gem i Supabase med billed-URL
     const { error: dbError } = await supabase.from("receipts").insert([
       {
         vendor:          receipt.leverandør      || null,
@@ -115,16 +131,16 @@ Hvis noget ikke kan aflæses, brug null.`
         account:         receipt.konto           || null,
         account_name:    receipt.konto_navn      || null,
         payment_method:  receipt.betalingsmetode || null,
-        currency:        receipt.valuta          || "DKK"
+        currency:        receipt.valuta          || "DKK",
+        image_url:       imageUrl
       }
     ]);
 
     if (dbError) {
       console.error("Supabase fejl:", dbError);
-      // Vi returnerer stadig resultatet til frontend selv om DB fejler
     }
 
-    // 6. Returner resultat til frontend
+    // 7. Returner resultat til frontend
     return res.status(200).json(receipt);
 
   } catch (error) {
