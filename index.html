@@ -375,17 +375,28 @@ async function loadReceipts() {
         ? new Date(r.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
         : '';
       return `
-        <div class="receipt-item">
-          <div>
-            <div>${r.vendor || 'Ukendt leverandør'}</div>
-            <div class="receipt-meta">
-              ${date}
-              ${r.category ? ' · ' + r.category : ''}
-              ${r.account_name ? ' · ' + r.account_name + ' (' + r.account + ')' : ''}
-            </div>
-          </div>
-          <div class="receipt-amount">${amount}</div>
-        </div>`;
+  <div class="receipt-item" data-id="${r.id}">
+    <div>
+      <div>${r.vendor || 'Ukendt leverandør'}</div>
+
+      <div class="receipt-meta">
+        ${date}
+        ${r.category ? ' · ' + r.category : ''}
+      </div>
+
+      <div style="margin-top:4px;font-size:12px">
+        Konto:
+        <input 
+          value="${r.account || ''}" 
+          onchange="updateAccount('${r.id}', this.value)"
+          style="width:70px;padding:2px"
+        >
+      </div>
+
+    </div>
+
+    <div class="receipt-amount">${amount}</div>
+  </div>`;
     }).join('');
   } catch {
     list.innerHTML = '<p class="empty-state">Kunne ikke hente kvitteringer</p>';
