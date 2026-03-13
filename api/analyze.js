@@ -102,7 +102,8 @@ export default async function handler(req, res) {
     let receipt;
 
     try {
-      receipt = JSON.parse(content);
+      const clean = content.replace(/```json|```/g, "").trim();
+receipt = JSON.parse(clean);
     } catch {
       return res.status(500).json({
         error: "AI returnerede ikke valid JSON",
