@@ -568,11 +568,12 @@ async function uploadReceipt() {
     const text = await res.text();
     if (!res.ok) throw new Error(text || 'Serverfejl');
     renderResult(text);
+    removeFile();
     setTimeout(() => loadAll(), 1500);
   } catch (err) {
     showError('Fejl: ' + err.message);
   } finally {
-    btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'Analyser igen';
+    btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'Analyser kvittering';
   }
 }
 
@@ -676,7 +677,6 @@ function toggleEdit(id) {
 
 function toggleImage(id) {
   const panel = document.getElementById('img-' + id);
-  console.log('toggleImage', id, panel);
   if (panel) panel.classList.toggle('open');
 }
 
@@ -689,8 +689,8 @@ async function updateField(id, field, value, inputEl) {
       body: JSON.stringify({ id, [field]: value })
     });
     if (!res.ok) throw new Error();
-    inputEl.style.borderColor = '#1e60aa';
-    statusEl.textContent = '✓ Gemt'; statusEl.style.color = '#1e60aa';
+    inputEl.style.borderColor = '#2D5A3D';
+    statusEl.textContent = '✓ Gemt'; statusEl.style.color = '#2D5A3D';
     setTimeout(() => { inputEl.style.borderColor = ''; statusEl.textContent = ''; }, 2000);
   } catch {
     inputEl.style.borderColor = '#C0392B';
