@@ -408,7 +408,8 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <footer>Drevet af OpenAI Vision · Billeder gemt i Supabase Storage</footer>
 
 <script>
-// Supabase klient — henter config
+(async () => {
+
 const { supabaseUrl, supabaseKey } = await fetch('/api/config').then(r => r.json());
 const sb = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -864,6 +865,8 @@ async function loadOverblik() {
     content.innerHTML = '<p class="empty-state">Kunne ikke hente overblik</p>';
   }
 }
+
+})();
 </script>
 </body>
 </html>
