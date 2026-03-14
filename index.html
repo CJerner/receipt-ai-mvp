@@ -408,10 +408,9 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <footer>Drevet af OpenAI Vision · Billeder gemt i Supabase Storage</footer>
 
 <script>
-// Supabase klient — erstat med dine egne værdier
-const SUPABASE_URL = 'DIN_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'DIN_SUPABASE_ANON_KEY';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase klient — henter config
+const { supabaseUrl, supabaseKey } = await fetch('/api/config').then(r => r.json());
+const sb = supabase.createClient(supabaseUrl, supabaseKey);
 
 const LABELS = {
   dato: 'Dato', leverandør: 'Leverandør', beløb_inkl_moms: 'Beløb inkl. moms',
