@@ -490,24 +490,19 @@ async function getSb() {
 getSb().then(client => {
   // Tjek om det er et invitation link
   const hash = window.location.hash;
-  if (hash.includes('type=invite') || hash.includes('type=recovery')) {
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get('access_token');
-    if (accessToken) {
-      // Sæt session fra invitation token
-      client.auth.setSession({ access_token: accessToken, refresh_token: params.get('refresh_token') || '' });
-      // Vis sæt-password siden
+  const isInvite = hash.includes('type=invite') || hash.includes('type=recovery');
+
+  client.auth.onAuthStateChange((event, session) => {
+    if (isInvite && event === 'SIGNED_IN') {
+      // Vis sæt-password siden i stedet for appen
       document.getElementById('setPasswordSection').style.display = 'flex';
       document.getElementById('setPasswordSection').style.flexDirection = 'column';
       document.getElementById('setPasswordSection').style.alignItems = 'center';
       document.getElementById('loginSection').style.display = 'none';
-      // Ryd hash fra URL
+      document.getElementById('appSection').style.display = 'none';
       history.replaceState(null, '', window.location.pathname);
       return;
     }
-  }
-
-  client.auth.onAuthStateChange((event, session) => {
     if (session?.user) { currentUser = session.user; showApp(session.user); }
     else { currentUser = null; showLogin(); }
   });
