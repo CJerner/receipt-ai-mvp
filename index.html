@@ -676,6 +676,7 @@ function toggleEdit(id) {
 
 function toggleImage(id) {
   const panel = document.getElementById('img-' + id);
+  console.log('toggleImage', id, panel);
   if (panel) panel.classList.toggle('open');
 }
 
