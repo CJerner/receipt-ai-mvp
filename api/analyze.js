@@ -2,68 +2,58 @@ import formidable from "formidable";
 import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 
-export const config = {
-  api: { bodyParser: false }
-};
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
+
+  // Auth
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Ikke autoriseret" });
+
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } }
+  });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return res.status(401).json({ error: "Ugyldig session" });
 
   try {
-    // 1. Parse uploadet fil
     const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
     const [, files] = await form.parse(req);
     const file = files.file?.[0];
+    if (!file) return res.status(400).json({ error: "Ingen fil modtaget" });
 
-    if (!file) {
-      return res.status(400).json({ error: "Ingen fil modtaget" });
-    }
-
-    // 2. Konverter billede til base64
     const imageBuffer = fs.readFileSync(file.filepath);
     const base64Image = imageBuffer.toString("base64");
     const mimeType = file.mimetype || "image/jpeg";
 
-    // 3. Upload billede til Supabase Storage
+    // Upload billede til Supabase Storage
     const ext = mimeType.split("/")[1] || "jpg";
-    const filename = `${Date.now()}.${ext}`;
+    const filename = `${user.id}/${Date.now()}.${ext}`;
     let imageUrl = null;
 
     const { error: storageError } = await supabase.storage
       .from("receipts")
       .upload(filename, imageBuffer, { contentType: mimeType });
 
-    if (storageError) {
-      console.error("Storage fejl:", storageError);
-    } else {
-      const { data: urlData } = supabase.storage
-        .from("receipts")
-        .getPublicUrl(filename);
+    if (!storageError) {
+      const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(filename);
       imageUrl = urlData?.publicUrl || null;
+    } else {
+      console.error("Storage fejl:", storageError);
     }
 
-    // 4. Send billede til OpenAI
+    // Send til OpenAI
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `Du er en dansk bogholder.
-Analyser kvitteringsbilledet og returner KUN et JSON objekt uden markdown eller forklaringer.
-JSON skal indeholde:
+            content: `Du er en dansk bogholder. Analyser kvitteringsbilledet og returner KUN et JSON objekt uden markdown.
 {
   "dato": "YYYY-MM-DD",
   "leverandør": "firmanavn",
@@ -71,7 +61,7 @@ JSON skal indeholde:
   "moms": 0.00,
   "moms_procent": 25,
   "kategori": "fx Transport / Kontor / Mad / Byggemarked",
-  "konto": "dansk standardkontoplan 4-cifret nummer, fx 2000 for varesalg, 3000 for varekøb, 7000 for lønninger",
+  "konto": "dansk standardkontoplan 4-cifret nummer",
   "konto_navn": "fx Varekøb / Husleje / Rejseomkostninger",
   "betalingsmetode": "Kort / Kontant / MobilePay",
   "valuta": "DKK"
@@ -81,17 +71,8 @@ Hvis noget ikke kan aflæses, brug null.`
           {
             role: "user",
             content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Image}`,
-                  detail: "high"
-                }
-              },
-              {
-                type: "text",
-                text: "Analyser kvitteringen og returner JSON."
-              }
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: "high" } },
+              { type: "text", text: "Analyser kvitteringen og returner JSON." }
             ]
           }
         ],
@@ -100,49 +81,33 @@ Hvis noget ikke kan aflæses, brug null.`
     });
 
     const data = await openaiResponse.json();
+    if (!data.choices) return res.status(500).json({ error: "OpenAI fejl", debug: data });
 
-    if (!data.choices) {
-      console.error("OpenAI fejl:", data);
-      return res.status(500).json({ error: "OpenAI svar fejl", debug: data });
-    }
-
-    // 5. Parse AI svar
     const content = data.choices[0].message.content;
     let receipt;
     try {
-      const clean = content.replace(/```json|```/g, "").trim();
-      receipt = JSON.parse(clean);
+      receipt = JSON.parse(content.replace(/```json|```/g, "").trim());
     } catch {
-      return res.status(500).json({
-        error: "AI returnerede ikke valid JSON",
-        raw: content
-      });
+      return res.status(500).json({ error: "AI returnerede ikke valid JSON", raw: content });
     }
 
-    // 6. Gem i Supabase med billed-URL
-    const { error: dbError } = await supabase.from("receipts").insert([
-      {
-        vendor:          receipt.leverandør      || null,
-        date:            receipt.dato            || null,
-        amount:          receipt.beløb_inkl_moms || null,
-        vat:             receipt.moms            || null,
-        vat_rate:        receipt.moms_procent    || null,
-        category:        receipt.kategori        || null,
-        account:         receipt.konto           || null,
-        account_name:    receipt.konto_navn      || null,
-        payment_method:  receipt.betalingsmetode || null,
-        currency:        receipt.valuta          || "DKK",
-        image_url:       imageUrl
-      }
-    ]);
+    const { error: dbError } = await supabase.from("receipts").insert([{
+      vendor:         receipt.leverandør      || null,
+      date:           receipt.dato            || null,
+      amount:         receipt.beløb_inkl_moms || null,
+      vat:            receipt.moms            || null,
+      vat_rate:       receipt.moms_procent    || null,
+      category:       receipt.kategori        || null,
+      account:        receipt.konto           || null,
+      account_name:   receipt.konto_navn      || null,
+      payment_method: receipt.betalingsmetode || null,
+      currency:       receipt.valuta          || "DKK",
+      image_url:      imageUrl
+    }]);
 
-    if (dbError) {
-      console.error("Supabase fejl:", dbError);
-    }
+    if (dbError) console.error("Supabase fejl:", dbError);
 
-    // 7. Returner resultat til frontend
     return res.status(200).json(receipt);
-
   } catch (error) {
     console.error("Handler fejl:", error);
     return res.status(500).json({ error: error.toString() });
