@@ -408,10 +408,27 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <footer>Drevet af OpenAI Vision · Billeder gemt i Supabase Storage</footer>
 
 <script>
-(async () => {
+let sb = null;
 
-const { supabaseUrl, supabaseKey } = await fetch('/api/config').then(r => r.json());
-const sb = supabase.createClient(supabaseUrl, supabaseKey);
+async function getSb() {
+  if (sb) return sb;
+  const { supabaseUrl, supabaseKey } = await fetch('/api/config').then(r => r.json());
+  sb = supabase.createClient(supabaseUrl, supabaseKey);
+  return sb;
+}
+
+// Initialiser ved load
+getSb().then(client => {
+  client.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      currentUser = session.user;
+      showApp(session.user);
+    } else {
+      currentUser = null;
+      showLogin();
+    }
+  });
+});
 
 const LABELS = {
   dato: 'Dato', leverandør: 'Leverandør', beløb_inkl_moms: 'Beløb inkl. moms',
@@ -424,15 +441,6 @@ let currentPeriod = 'dag';
 let currentUser = null;
 
 // ── AUTH ──────────────────────────────────────────────
-sb.auth.onAuthStateChange((event, session) => {
-  if (session?.user) {
-    currentUser = session.user;
-    showApp(session.user);
-  } else {
-    currentUser = null;
-    showLogin();
-  }
-});
 
 function showLogin() {
   document.getElementById('loginSection').style.display = 'flex';
@@ -464,7 +472,8 @@ async function login() {
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
 
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const client = await getSb();
+  const { error } = await client.auth.signInWithPassword({ email, password });
   if (error) {
     errEl.textContent = 'Forkert email eller adgangskode';
     errEl.style.display = 'block';
@@ -479,7 +488,8 @@ async function signup() {
   const successEl = document.getElementById('signupSuccess');
   errEl.style.display = 'none';
 
-  const { error } = await sb.auth.signUp({
+  const client = await getSb();
+  const { error } = await client.auth.signUp({
     email, password,
     options: { data: { company_name: company } }
   });
@@ -488,13 +498,14 @@ async function signup() {
     errEl.textContent = error.message;
     errEl.style.display = 'block';
   } else {
-    successEl.textContent = 'Tjek din email for at bekræfte din konto.';
+    successEl.textContent = 'Konto oprettet! Du er nu logget ind.';
     successEl.style.display = 'block';
   }
 }
 
 async function logout() {
-  await sb.auth.signOut();
+  const client = await getSb();
+  await client.auth.signOut();
 }
 
 // ── UPLOAD ────────────────────────────────────────────
@@ -539,7 +550,8 @@ function showError(msg) {
 }
 
 async function getToken() {
-  const { data } = await sb.auth.getSession();
+  const client = await getSb();
+  const { data } = await client.auth.getSession();
   return data?.session?.access_token;
 }
 
@@ -865,8 +877,6 @@ async function loadOverblik() {
     content.innerHTML = '<p class="empty-state">Kunne ikke hente overblik</p>';
   }
 }
-
-})();
 </script>
 </body>
 </html>
