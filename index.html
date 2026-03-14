@@ -314,6 +314,29 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 </head>
 <body>
 
+<!-- SET PASSWORD (invitation flow) -->
+<div id="setPasswordSection" style="display:none; flex-direction:column; align-items:center;">
+  <header>
+    <p class="eyebrow">Automatisk bogføring</p>
+    <h1><em>Finivo</em></h1>
+    <p class="subtitle">Du er blevet inviteret — vælg en adgangskode</p>
+  </header>
+  <div class="card" style="max-width:420px;">
+    <p class="section-label" style="margin-bottom:1.25rem">Vælg adgangskode</p>
+    <div class="form-group">
+      <label>Ny adgangskode</label>
+      <input type="password" id="newPassword" placeholder="Min. 6 tegn">
+    </div>
+    <div class="form-group">
+      <label>Bekræft adgangskode</label>
+      <input type="password" id="confirmPassword" placeholder="Gentag adgangskode">
+    </div>
+    <button class="btn-primary" onclick="setInvitePassword()">Aktivér konto</button>
+    <div class="auth-error" id="setPasswordError"></div>
+    <div class="auth-success" id="setPasswordSuccess"></div>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div id="loginSection">
   <header>
@@ -465,6 +488,25 @@ async function getSb() {
 }
 
 getSb().then(client => {
+  // Tjek om det er et invitation link
+  const hash = window.location.hash;
+  if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    if (accessToken) {
+      // Sæt session fra invitation token
+      client.auth.setSession({ access_token: accessToken, refresh_token: params.get('refresh_token') || '' });
+      // Vis sæt-password siden
+      document.getElementById('setPasswordSection').style.display = 'flex';
+      document.getElementById('setPasswordSection').style.flexDirection = 'column';
+      document.getElementById('setPasswordSection').style.alignItems = 'center';
+      document.getElementById('loginSection').style.display = 'none';
+      // Ryd hash fra URL
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+  }
+
   client.auth.onAuthStateChange((event, session) => {
     if (session?.user) { currentUser = session.user; showApp(session.user); }
     else { currentUser = null; showLogin(); }
@@ -518,6 +560,43 @@ function switchAuthTab(tab) {
   document.querySelector(`.auth-tab[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
   document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('signupForm').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+async function setInvitePassword() {
+  const password = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+  const errEl = document.getElementById('setPasswordError');
+  const successEl = document.getElementById('setPasswordSuccess');
+  errEl.style.display = 'none';
+
+  if (!password || password.length < 6) {
+    errEl.textContent = 'Adgangskode skal være mindst 6 tegn';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (password !== confirm) {
+    errEl.textContent = 'Adgangskoderne matcher ikke';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const client = await getSb();
+  const { error } = await client.auth.updateUser({ password });
+
+  if (error) {
+    errEl.textContent = 'Fejl: ' + error.message;
+    errEl.style.display = 'block';
+  } else {
+    successEl.textContent = '✓ Konto aktiveret! Du logges ind...';
+    successEl.style.display = 'block';
+    setTimeout(async () => {
+      const { data: { session } } = await client.auth.getSession();
+      if (session?.user) {
+        document.getElementById('setPasswordSection').style.display = 'none';
+        showApp(session.user);
+      }
+    }, 1500);
+  }
 }
 
 async function login() {
