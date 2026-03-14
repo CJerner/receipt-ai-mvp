@@ -10,11 +10,28 @@ export default async function handler(req, res) {
     global: { headers: { Authorization: `Bearer ${token}` } }
   });
 
-  const { data, error } = await supabase
-    .from("receipts")
-    .select("*")
-    .order("date", { ascending: false });
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return res.status(401).json({ error: "Ugyldig session" });
 
+  // Hent brugerens rolle og firma
+  const { data: companyUser } = await supabase
+    .from("company_users")
+    .select("role, company_id")
+    .eq("user_id", user.id)
+    .single();
+
+  let query = supabase.from("receipts").select("*").order("date", { ascending: false });
+
+  if (companyUser?.role === "admin") {
+    // Admin ser alle firma-kvitteringer
+    query = query.eq("company_id", companyUser.company_id);
+  } else {
+    // Member ser kun egne kvitteringer
+    query = query.eq("user_id", user.id);
+  }
+
+  const { data, error } = await query;
   if (error) return res.status(500).json(error);
+
   return res.status(200).json(data);
 }
