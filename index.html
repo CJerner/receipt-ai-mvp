@@ -295,29 +295,8 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <!-- LOGIN -->
 <div id="loginSection">
   <header>
-    <div class="logo">
-      <svg class="logo-icon" viewBox="0 0 56 74" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#5a9e6f"/>
-            <stop offset="100%" stop-color="#2D5A3D"/>
-          </linearGradient>
-        </defs>
-        <path d="M2 2 L54 2 L54 64 L50 70 L46 64 L41 70 L36 64 L31 70 L26 64 L21 70 L16 64 L11 70 L6 64 L2 64 Z" fill="rgba(45,90,61,0.05)" stroke="url(#lg1)" stroke-width="1.3" opacity="0.85"/>
-        <rect x="9" y="10" width="7" height="47" rx="2" fill="url(#lg1)"/>
-        <rect x="9" y="10" width="9" height="7" rx="1.5" fill="url(#lg1)"/>
-        <rect x="20" y="10" width="8" height="7" rx="1.5" fill="url(#lg1)" opacity="0.70"/>
-        <rect x="30" y="10" width="6" height="7" rx="1.5" fill="url(#lg1)" opacity="0.40"/>
-        <rect x="38" y="10" width="4" height="7" rx="1.5" fill="url(#lg1)" opacity="0.18"/>
-        <rect x="44" y="10" width="3" height="7" rx="1.5" fill="url(#lg1)" opacity="0.08"/>
-        <rect x="9" y="28" width="9" height="6" rx="1.5" fill="url(#lg1)"/>
-        <rect x="20" y="28" width="7" height="6" rx="1.5" fill="url(#lg1)" opacity="0.60"/>
-        <rect x="29" y="28" width="5" height="6" rx="1.5" fill="url(#lg1)" opacity="0.28"/>
-        <rect x="36" y="28" width="4" height="6" rx="1.5" fill="url(#lg1)" opacity="0.10"/>
-      </svg>
-      <span class="logo-text">Finivo</span>
-    </div>
     <p class="eyebrow">Automatisk bogføring</p>
+    <h1><em>Finivo</em></h1>
     <p class="subtitle">Log ind for at komme i gang</p>
   </header>
 
@@ -364,42 +343,16 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <div id="appSection" style="display:none; width:100%; flex-direction:column; align-items:center;">
 
   <div class="topbar" id="topbar">
-    <div class="topbar-left">
-      <svg class="topbar-logo" viewBox="0 0 56 74" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#5a9e6f"/>
-            <stop offset="100%" stop-color="#2D5A3D"/>
-          </linearGradient>
-        </defs>
-        <path d="M2 2 L54 2 L54 64 L50 70 L46 64 L41 70 L36 64 L31 70 L26 64 L21 70 L16 64 L11 70 L6 64 L2 64 Z" fill="rgba(45,90,61,0.05)" stroke="url(#lg2)" stroke-width="1.3" opacity="0.85"/>
-        <rect x="9" y="10" width="7" height="47" rx="2" fill="url(#lg2)"/>
-        <rect x="9" y="10" width="9" height="7" rx="1.5" fill="url(#lg2)"/>
-        <rect x="20" y="10" width="8" height="7" rx="1.5" fill="url(#lg2)" opacity="0.70"/>
-        <rect x="30" y="10" width="6" height="7" rx="1.5" fill="url(#lg2)" opacity="0.40"/>
-        <rect x="38" y="10" width="4" height="7" rx="1.5" fill="url(#lg2)" opacity="0.18"/>
-        <rect x="44" y="10" width="3" height="7" rx="1.5" fill="url(#lg2)" opacity="0.08"/>
-        <rect x="9" y="28" width="9" height="6" rx="1.5" fill="url(#lg2)"/>
-        <rect x="20" y="28" width="7" height="6" rx="1.5" fill="url(#lg2)" opacity="0.60"/>
-        <rect x="29" y="28" width="5" height="6" rx="1.5" fill="url(#lg2)" opacity="0.28"/>
-        <rect x="36" y="28" width="4" height="6" rx="1.5" fill="url(#lg2)" opacity="0.10"/>
-      </svg>
-      <div>
-        <div class="topbar-company" id="topbarCompany">Finivo</div>
-        <div class="topbar-user" id="topbarUser"></div>
-      </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:var(--serif);font-size:1.1rem;color:var(--ink)" id="topbarCompany"></span>
+      <span class="topbar-user" id="topbarUser"></span>
     </div>
     <button class="btn-logout" onclick="logout()">Log ud</button>
   </div>
 
   <header>
-    <div class="logo">
-      <svg class="logo-icon" viewBox="0 0 56 74" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <use href="#finivo-icon"/>
-      </svg>
-      <span class="logo-text">Finivo</span>
-    </div>
     <p class="eyebrow">Automatisk bogføring</p>
+    <h1><em>Finivo</em></h1>
     <p class="subtitle">Upload en kvittering — vi bogfører automatisk</p>
   </header>
 
