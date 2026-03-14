@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kvitteringsanalyse</title>
+<title>Fakto — Automatisk bogføring</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -278,8 +278,8 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <!-- LOGIN -->
 <div id="loginSection">
   <header>
-    <p class="eyebrow">AI · Bogføring</p>
-    <h1>Analyser din<br><em>kvittering</em></h1>
+    <p class="eyebrow">Automatisk bogføring</p>
+    <h1><em>Fakto</em></h1>
     <p class="subtitle">Log ind for at komme i gang</p>
   </header>
 
@@ -326,14 +326,17 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 <div id="appSection" style="display:none; width:100%; display:none; flex-direction:column; align-items:center;">
 
   <div class="topbar" id="topbar">
-    <span class="topbar-user" id="topbarUser"></span>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:var(--serif);font-size:1.1rem;color:var(--ink)" id="topbarCompany"></span>
+      <span class="topbar-user" id="topbarUser"></span>
+    </div>
     <button class="btn-logout" onclick="logout()">Log ud</button>
   </div>
 
   <header>
-    <p class="eyebrow">AI · Bogføring</p>
-    <h1>Analyser din<br><em>kvittering</em></h1>
-    <p class="subtitle">Upload et billede — vi udtrækker dato, beløb og kategori</p>
+    <p class="eyebrow">Automatisk bogføring</p>
+    <h1><em>Fakto</em></h1>
+    <p class="subtitle">Upload en kvittering — vi bogfører automatisk</p>
   </header>
 
   <!-- Upload kort -->
@@ -405,7 +408,7 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 
 </div>
 
-<footer>Drevet af OpenAI Vision · Billeder gemt i Supabase Storage</footer>
+<footer>Fakto · Automatisk bogføring · Drevet af AI</footer>
 
 <script>
 let sb = null;
@@ -456,6 +459,10 @@ function showApp(user) {
   document.getElementById('appSection').style.alignItems = 'center';
   document.getElementById('topbar').style.display = 'flex';
   document.getElementById('topbarUser').textContent = user.email;
+  const company = user.user_metadata?.company_name;
+  if (company) {
+    document.getElementById('topbarCompany').textContent = company;
+  }
   loadAll();
 }
 
