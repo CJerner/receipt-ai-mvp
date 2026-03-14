@@ -290,6 +290,26 @@ h1 em { font-style: italic; color: var(--accent); }
 
 .empty-state { font-size: .8rem; color: var(--muted); text-align: center; padding: 2rem 0; }
 footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: center; }
+
+.status-badge {
+  display: inline-block;
+  font-size: .6rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: .15rem .5rem;
+  border-radius: 2px;
+  margin-left: .5rem;
+  font-family: var(--mono);
+}
+.status-pending { background: #FFF8E7; color: #B7791F; border: 1px solid #F6E05E; }
+.status-approved { background: #F0FFF4; color: #276749; border: 1px solid #9AE6B4; }
+.status-rejected { background: #FFF5F5; color: #C53030; border: 1px solid #FC8181; }
+
+.invite-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.invite-row { display: flex; gap: .5rem; margin-top: .5rem; }
+.invite-input { flex: 1; padding: .5rem .75rem; font-family: var(--mono); font-size: .8rem; border: 1px solid var(--border); background: var(--bg); border-radius: 2px; }
+.invite-btn { padding: .5rem 1rem; background: var(--accent); color: white; border: none; font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; border-radius: 2px; white-space: nowrap; }
+.invite-btn:hover { background: var(--accent-dark); }
 </style>
 </head>
 <body>
@@ -399,6 +419,14 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
         <span class="list-footer-label">Total inkl. moms</span>
         <span class="list-footer-total" id="total-aktuelle"></span>
       </div>
+      <div class="invite-section" id="inviteBtn" style="display:none">
+        <p class="section-label">Inviter medarbejder</p>
+        <div class="invite-row">
+          <input class="invite-input" type="email" id="inviteEmail" placeholder="medarbejder@firma.dk">
+          <button class="invite-btn" onclick="inviteUser()">Send invitation</button>
+        </div>
+        <div id="inviteStatus" style="font-size:.75rem;margin-top:.5rem;display:none"></div>
+      </div>
     </div>
 
     <div class="tab-panel" id="tab-historik">
@@ -452,6 +480,7 @@ const LABELS = {
 let currentFile = null;
 let currentPeriod = 'dag';
 let currentUser = null;
+let currentRole = null;
 
 function showLogin() {
   document.getElementById('loginSection').style.display = 'flex';
@@ -460,15 +489,27 @@ function showLogin() {
   document.getElementById('appSection').style.display = 'none';
 }
 
-function showApp(user) {
+async function showApp(user) {
   document.getElementById('loginSection').style.display = 'none';
   document.getElementById('appSection').style.display = 'flex';
   document.getElementById('appSection').style.flexDirection = 'column';
   document.getElementById('appSection').style.alignItems = 'center';
   document.getElementById('topbar').style.display = 'flex';
   document.getElementById('topbarUser').textContent = user.email;
-  const company = user.user_metadata?.company_name;
-  if (company) document.getElementById('topbarCompany').textContent = company;
+
+  // Hent firma og rolle
+  const token = await getToken();
+  const r = await fetch('/api/get-company', { headers: { 'Authorization': `Bearer ${token}` } });
+  const { company, role } = await r.json();
+  currentRole = role;
+
+  const companyName = company?.name || user.user_metadata?.company_name || 'Finivo';
+  document.getElementById('topbarCompany').textContent = companyName;
+
+  // Vis invite knap kun for admin
+  const inviteBtn = document.getElementById('inviteBtn');
+  if (inviteBtn) inviteBtn.style.display = role === 'admin' ? 'block' : 'none';
+
   loadAll();
 }
 
@@ -498,9 +539,21 @@ async function signup() {
   errEl.style.display = 'none';
   try {
     const client = await getSb();
-    const { error } = await client.auth.signUp({ email, password, options: { data: { company_name: company } } });
-    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
-    else { successEl.textContent = 'Konto oprettet! Du er nu logget ind.'; successEl.style.display = 'block'; }
+    const { data, error } = await client.auth.signUp({ email, password, options: { data: { company_name: company } } });
+    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+
+    // Opret firma automatisk ved signup
+    if (data?.session && company) {
+      const token = data.session.access_token;
+      await fetch('/api/create-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name: company })
+      });
+    }
+
+    successEl.textContent = 'Konto oprettet! Du er nu logget ind.';
+    successEl.style.display = 'block';
   } catch(e) { errEl.textContent = 'Uventet fejl: ' + e.message; errEl.style.display = 'block'; }
 }
 
@@ -637,7 +690,10 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
     const editBtn = showEdit ? `
       <button class="btn-sm" onclick="toggleEdit('${r.id}')">Rediger</button>
       <button class="btn-sm" onclick="toggleImage('${r.id}')">Vis billede</button>
-      <button class="btn-sm danger" onclick="deleteReceipt('${r.id}')">Slet</button>` : `
+      <button class="btn-sm danger" onclick="deleteReceipt('${r.id}')">Slet</button>
+      ${currentRole === 'admin' && r.status === 'pending' ? `
+      <button class="btn-sm" style="border-color:#276749;color:#276749" onclick="approveReceipt('${r.id}', 'approve')">✓ Godkend</button>
+      <button class="btn-sm danger" onclick="approveReceipt('${r.id}', 'reject')">✗ Afvis</button>` : ''}` : `
       <button class="btn-sm" onclick="toggleImage('${r.id}')">Vis billede</button>`;
     const imageHtml = r.image_url ? `<div class="image-panel" id="img-${r.id}"><img src="${r.image_url}" alt="Kvittering" onclick="window.open('${r.image_url}', '_blank')"></div>` : '';
     const editHtml = showEdit ? `
@@ -652,7 +708,7 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
       <div class="receipt-item" id="item-${r.id}">
         <div class="receipt-summary">
           <div class="receipt-summary-left">
-            <div class="receipt-vendor">${r.vendor || 'Ukendt leverandør'}</div>
+            <div class="receipt-vendor">${r.vendor || 'Ukendt leverandør'}<span class="status-badge status-${r.status || 'pending'}">${r.status === 'approved' ? 'Godkendt' : r.status === 'rejected' ? 'Afvist' : 'Afventer'}</span></div>
             <div class="receipt-meta">${date}${r.category ? ' · ' + r.category : ''}${r.account ? ' · Konto ' + r.account : ''}</div>
             <div class="receipt-actions">${editBtn}</div>
           </div>
@@ -698,7 +754,43 @@ async function updateField(id, field, value, inputEl) {
   }
 }
 
-async function deleteReceipt(id) {
+async function approveReceipt(id, action) {
+  const token = await getToken();
+  const res = await fetch('/api/approve-receipt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ id, action })
+  });
+  if (res.ok) loadAll();
+  else alert('Kunne ikke ' + (action === 'approve' ? 'godkende' : 'afvise') + ' kvitteringen');
+}
+
+async function inviteUser() {
+  const email = document.getElementById('inviteEmail').value;
+  const statusEl = document.getElementById('inviteStatus');
+  if (!email) return;
+
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#8A8780';
+  statusEl.textContent = 'Sender invitation...';
+
+  const token = await getToken();
+  const res = await fetch('/api/invite-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ email, role: 'member' })
+  });
+
+  if (res.ok) {
+    statusEl.style.color = '#276749';
+    statusEl.textContent = '✓ Invitation sendt til ' + email;
+    document.getElementById('inviteEmail').value = '';
+  } else {
+    const err = await res.json();
+    statusEl.style.color = '#C0392B';
+    statusEl.textContent = '✗ Fejl: ' + (err.error || 'Kunne ikke sende invitation');
+  }
+}
   if (!confirm('Er du sikker på du vil slette denne kvittering?')) return;
   const token = await getToken();
   await fetch('/api/delete-receipt', {
