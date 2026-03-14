@@ -791,6 +791,8 @@ async function inviteUser() {
     statusEl.textContent = '✗ Fejl: ' + (err.error || 'Kunne ikke sende invitation');
   }
 }
+
+async function deleteReceipt(id) {
   if (!confirm('Er du sikker på du vil slette denne kvittering?')) return;
   const token = await getToken();
   await fetch('/api/delete-receipt', {
