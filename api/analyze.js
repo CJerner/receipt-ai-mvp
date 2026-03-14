@@ -91,7 +91,17 @@ Hvis noget ikke kan aflæses, brug null.`
       return res.status(500).json({ error: "AI returnerede ikke valid JSON", raw: content });
     }
 
+    // Hent brugerens firma
+    const { data: companyUser } = await supabase
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", user.id)
+      .single();
+
     const { error: dbError } = await supabase.from("receipts").insert([{
+      user_id:        user.id,
+      company_id:     companyUser?.company_id || null,
+      status:         "pending",
       vendor:         receipt.leverandør      || null,
       date:           receipt.dato            || null,
       amount:         receipt.beløb_inkl_moms || null,
