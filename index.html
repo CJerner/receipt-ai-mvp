@@ -402,7 +402,7 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
   <div class="tab-panel active" id="tab-aktuelle">
     <div class="list-header">
       <span class="total-badge" id="badge-aktuelle"></span>
-      <a class="btn-csv" href="/api/export-csv" onclick="handleExport(event)">↓ Eksport CSV</a>
+      <button class="btn-csv" onclick="handleExport()">↓ Eksport CSV</button>
     </div>
     <div id="list-aktuelle">
       <p class="empty-state">Henter kvitteringer...</p>
@@ -547,8 +547,14 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
-async function handleExport(e) {
-  // Lad download ske normalt, men opdater lister bagefter
+async function handleExport() {
+  if (!confirm('Eksporter aktuelle kvitteringer til CSV?\nDe vil herefter flyttes til historik.')) return;
+
+  const a = document.createElement('a');
+  a.href = '/api/export-csv';
+  a.download = 'kvitteringer.csv';
+  a.click();
+
   setTimeout(() => loadAll(), 2000);
 }
 
