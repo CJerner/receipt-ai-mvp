@@ -10,16 +10,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Only GET allowed" });
   }
 
+  // Hent kun aktive (ikke-eksporterede) kvitteringer
   const { data, error } = await supabase
     .from("receipts")
     .select("*")
+    .eq("exported", false)
     .order("date", { ascending: false });
 
   if (error) {
     return res.status(500).json(error);
   }
 
-  // CSV header — kompatibel med e-conomic og Billy
+  if (!data.length) {
+    return res.status(200).send("\uFEFFIngen kvitteringer at eksportere");
+  }
+
+  // CSV header
   const headers = [
     "Dato",
     "Leverandør",
@@ -49,14 +55,19 @@ export default async function handler(req, res) {
       r.payment_method || "",
       r.currency || "DKK"
     ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(";");
-    // Semikolon som separator — standard i danske regnskabssystemer
   });
 
   const csv = [headers.join(";"), ...rows].join("\n");
 
-  // BOM for korrekt dansk tegnsæt i Excel
-  const bom = "\uFEFF";
+  // Markér alle som eksporteret
+  const ids = data.map(r => r.id);
+  await supabase
+    .from("receipts")
+    .update({ exported: true })
+    .in("id", ids);
 
+  // BOM for dansk tegnsæt i Excel
+  const bom = "\uFEFF";
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="kvitteringer-${new Date().toISOString().slice(0,10)}.csv"`);
   return res.status(200).send(bom + csv);
