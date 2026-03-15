@@ -23,7 +23,6 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: "Kun admins kan se brugerliste" });
   }
 
-  // Brug service role til at hente emails
   const supabaseAdmin = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -34,18 +33,18 @@ export default async function handler(req, res) {
     .select("user_id, role")
     .eq("company_id", callerData.company_id);
 
-  // Hent emails
-  const userIds = companyUsers.map(u => u.user_id);
-  const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-  const emailMap = {};
-  authUsers.users.forEach(u => { emailMap[u.id] = u.email; });
-
-  const result = companyUsers.map(u => ({
-    user_id: u.user_id,
-    role: u.role,
-    email: emailMap[u.user_id] || 'Ukendt',
-    isMe: u.user_id === user.id
-  }));
+  // Hent kun de specifikke brugere én ad gangen — hurtigere end listUsers()
+  const result = await Promise.all(
+    companyUsers.map(async cu => {
+      const { data } = await supabaseAdmin.auth.admin.getUserById(cu.user_id);
+      return {
+        user_id: cu.user_id,
+        role: cu.role,
+        email: data?.user?.email || 'Ukendt',
+        isMe: cu.user_id === user.id
+      };
+    })
+  );
 
   return res.status(200).json(result);
 }
