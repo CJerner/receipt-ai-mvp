@@ -231,18 +231,18 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .btn-csv:hover { background: var(--accent); color: white; }
 
-.receipt-item { border-bottom: 1px solid var(--border); padding: .75rem 0; }
+.receipt-item { border-bottom: 1px solid var(--border); padding: .85rem 0; }
 .receipt-item:last-child { border-bottom: none; }
-.receipt-summary { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
-.receipt-summary-left { flex: 1; min-width: 0; }
-.receipt-vendor { font-family: var(--serif); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.receipt-meta { font-size: .68rem; color: var(--muted); margin-top: .15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.receipt-summary-right { display: flex; flex-direction: column; align-items: flex-end; gap: .15rem; flex-shrink: 0; }
-.receipt-amount { font-family: var(--serif); font-size: 1rem; color: var(--accent); }
-.receipt-amount-ex { font-size: .65rem; color: var(--muted); }
 
-.receipt-actions { display: flex; gap: .35rem; margin-top: .5rem; flex-wrap: nowrap; align-items: center; }
-.btn-sm { font-family: var(--mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; padding: .22rem .45rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; white-space: nowrap; }
+.receipt-top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin-bottom: .2rem; }
+.receipt-vendor { font-family: var(--serif); font-size: 1rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.receipt-amount { font-family: var(--serif); font-size: 1rem; color: var(--accent); flex-shrink: 0; }
+
+.receipt-details { font-size: .68rem; color: var(--muted); margin-bottom: .5rem; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
+.receipt-detail-item { white-space: nowrap; }
+
+.receipt-actions { display: flex; gap: .3rem; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+.btn-sm { font-family: var(--mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; padding: .25rem .5rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
 .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 .btn-sm.danger:hover { border-color: var(--error); color: var(--error); }
 .btn-approve { border-color: #276749 !important; color: #276749 !important; }
@@ -825,17 +825,17 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
       </div>` : '';
     return `
       <div class="receipt-item" id="item-${r.id}">
-        <div class="receipt-summary">
-          <div class="receipt-summary-left">
-            <div class="receipt-vendor">${r.vendor || 'Ukendt leverandør'}<span class="status-badge status-${r.status || 'pending'}">${r.status === 'approved' ? 'Godkendt' : r.status === 'rejected' ? 'Afvist' : 'Afventer'}</span></div>
-            <div class="receipt-meta">${date}${r.category ? ' · ' + r.category : ''}${r.account ? ' · Konto ' + r.account : ''}</div>
-            <div class="receipt-actions">${editBtn}</div>
-          </div>
-          <div class="receipt-summary-right">
-            <div class="receipt-amount">${amount}</div>
-            ${amountEx ? `<div class="receipt-amount-ex">${amountEx}</div>` : ''}
-          </div>
+        <div class="receipt-top">
+          <div class="receipt-vendor">${r.vendor || 'Ukendt leverandør'}<span class="status-badge status-${r.status || 'pending'}">${r.status === 'approved' ? 'Godkendt' : r.status === 'rejected' ? 'Afvist' : 'Afventer'}</span></div>
+          <div class="receipt-amount">${amount}</div>
         </div>
+        <div class="receipt-details">
+          ${date ? `<span class="receipt-detail-item">${date}</span>` : ''}
+          ${amountEx ? `<span class="receipt-detail-item">${amountEx}</span>` : ''}
+          ${r.category ? `<span class="receipt-detail-item">· ${r.category}</span>` : ''}
+          ${r.account ? `<span class="receipt-detail-item">· Konto ${r.account}</span>` : ''}
+        </div>
+        <div class="receipt-actions">${editBtn}</div>
         ${imageHtml}
         ${editHtml}
       </div>`;
