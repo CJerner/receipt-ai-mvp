@@ -262,6 +262,18 @@ h1 em { font-style: italic; color: var(--accent); }
 .edit-row input:focus { outline: none; border-color: var(--accent); }
 .edit-status { font-size: 10px; height: 14px; display: block; }
 
+.konto-select {
+  flex: 1;
+  padding: 3px 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 2px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
 .list-footer { margin-top: 1rem; padding-top: 1rem; border-top: 1.5px solid var(--ink); display: flex; justify-content: space-between; align-items: baseline; }
 .list-footer-label { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
 .list-footer-total { font-family: var(--serif); font-size: 1.3rem; color: var(--ink); }
@@ -685,6 +697,58 @@ dropZone.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 
+// Kontoplan — nummer og navn hænger sammen
+const KONTOPLAN_DEBET = {
+  "1410": "Varekøb",
+  "1420": "Maskiner og inventar",
+  "1480": "Fremmed arbejde",
+  "2050": "Husleje",
+  "2060": "El, vand og varme",
+  "2220": "Bilomkostninger",
+  "2230": "Brændstof",
+  "2290": "Reparation og vedligehold",
+  "2690": "Repræsentation",
+  "2820": "Småanskaffelser",
+  "2840": "Arbejdstøj",
+  "2860": "Kontorartikler",
+  "2870": "Telefon og internet",
+  "2900": "Diverse omkostninger",
+  "2910": "Forsikringer"
+};
+
+const KONTOPLAN_KREDIT = {
+  "5810": "Bank",
+  "5820": "Kassekonto",
+  "6010": "Leverandørgæld"
+};
+
+function kontoSelect(fieldDebet, fieldName, currentVal, kontoplan) {
+  const opts = Object.entries(kontoplan)
+    .map(([nr, navn]) => `<option value="${nr}" ${currentVal === nr ? 'selected' : ''}>${nr} — ${navn}</option>`)
+    .join('');
+  return `<select class="konto-select" onchange="updateKonto('${fieldDebet}', '${fieldName}', this.value, this)">
+    <option value="">— vælg konto —</option>
+    ${opts}
+  </select>`;
+}
+
+async function updateKonto(idAndField, nameField, value, selectEl) {
+  const parts = idAndField.split('|');
+  const id = parts[0];
+  const field = parts[1];
+  const kontoplan = field.includes('kredit') ? KONTOPLAN_KREDIT : KONTOPLAN_DEBET;
+  const navn = kontoplan[value] || '';
+  const token = await getToken();
+  await fetch('/api/update-receipt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ id, [field]: value, [nameField]: navn })
+  });
+  // Vis bekræftelse
+  selectEl.style.outline = '2px solid #2D5A3D';
+  setTimeout(() => { selectEl.style.outline = ''; }, 1500);
+}
+
 function handleFile(file) {
   if (!file) return;
   if (!file.type.startsWith('image/')) { showError('Kun billedfiler er tilladt'); return; }
@@ -821,10 +885,8 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
         <div class="edit-row"><label>Kategori</label><input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)"></div>
         <div class="edit-row"><label>Dato</label><input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)"></div>
         <div class="edit-row"><label>Beskrivelse</label><input value="${r.description || ''}" onchange="updateField('${r.id}', 'description', this.value, this)"></div>
-        <div class="edit-row"><label>Debet</label><input value="${r.account_debet || r.account || ''}" placeholder="fx 1410" onchange="updateField('${r.id}', 'account_debet', this.value, this)"></div>
-        <div class="edit-row"><label>Debet navn</label><input value="${r.account_debet_name || r.account_name || ''}" placeholder="fx Varekøb" onchange="updateField('${r.id}', 'account_debet_name', this.value, this)"></div>
-        <div class="edit-row"><label>Kredit</label><input value="${r.account_kredit || ''}" placeholder="fx 5810" onchange="updateField('${r.id}', 'account_kredit', this.value, this)"></div>
-        <div class="edit-row"><label>Kredit navn</label><input value="${r.account_kredit_name || ''}" placeholder="fx Bank" onchange="updateField('${r.id}', 'account_kredit_name', this.value, this)"></div>
+        <div class="edit-row"><label>Debet</label>${kontoSelect('${r.id}|account_debet', 'account_debet_name', '${r.account_debet || r.account || ''}', KONTOPLAN_DEBET)}</div>
+        <div class="edit-row"><label>Kredit</label>${kontoSelect('${r.id}|account_kredit', 'account_kredit_name', '${r.account_kredit || ''}', KONTOPLAN_KREDIT)}</div>
         <span class="edit-status" id="status-${r.id}"></span>
       </div>` : '';
     return `
