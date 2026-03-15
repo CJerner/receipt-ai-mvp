@@ -911,10 +911,8 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
           <div class="receipt-amount">${amount}</div>
         </div>
         <div class="receipt-details" onclick="toggleDetail('${r.id}')" style="cursor:pointer;">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;">
-            <span style="color:var(--muted);font-size:.68rem;">${date}</span>
-            ${amountEx ? `<span style="color:var(--muted);font-size:.65rem;flex-shrink:0;">ex. moms: ${amountEx}</span>` : ''}
-          </div>
+          <div style="color:var(--muted);font-size:.68rem;">${date}</div>
+          ${amountEx ? `<div style="color:var(--muted);font-size:.65rem;margin-top:.1rem;">ex. moms: ${amountEx}</div>` : ''}
           ${r.category || r.account_debet || r.account ? `<div style="margin-top:.2rem;color:var(--muted);font-size:.65rem;display:flex;gap:.4rem;flex-wrap:wrap;">
             ${r.category ? `<span style="background:var(--bg);padding:.1rem .35rem;border-radius:2px;border:1px solid var(--border)">${r.category}</span>` : ''}
             ${r.account_debet || r.account ? `<span style="background:var(--bg);padding:.1rem .35rem;border-radius:2px;border:1px solid var(--border)">D: ${r.account_debet || r.account}</span>` : ''}
