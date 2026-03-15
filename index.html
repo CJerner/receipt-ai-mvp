@@ -879,14 +879,16 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
         <button class="btn-sm" onclick="toggleImage('${r.id}')">Billede</button>
       </div>`;
     const imageHtml = r.image_url ? `<div class="image-panel" id="img-${r.id}"><img src="${r.image_url}" alt="Kvittering" onclick="window.open('${r.image_url}', '_blank')"></div>` : '';
+    const debetVal = r.account_debet || r.account || '';
+    const kreditVal = r.account_kredit || '';
     const editHtml = showEdit ? `
       <div class="edit-panel" id="edit-${r.id}">
         <div class="edit-row"><label>Leverandør</label><input value="${r.vendor || ''}" onchange="updateField('${r.id}', 'vendor', this.value, this)"></div>
         <div class="edit-row"><label>Kategori</label><input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)"></div>
         <div class="edit-row"><label>Dato</label><input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)"></div>
         <div class="edit-row"><label>Beskrivelse</label><input value="${r.description || ''}" onchange="updateField('${r.id}', 'description', this.value, this)"></div>
-        <div class="edit-row"><label>Debet</label>${kontoSelect('${r.id}|account_debet', 'account_debet_name', '${r.account_debet || r.account || ''}', KONTOPLAN_DEBET)}</div>
-        <div class="edit-row"><label>Kredit</label>${kontoSelect('${r.id}|account_kredit', 'account_kredit_name', '${r.account_kredit || ''}', KONTOPLAN_KREDIT)}</div>
+        <div class="edit-row"><label>Debet</label>${kontoSelect(r.id + '|account_debet', 'account_debet_name', debetVal, KONTOPLAN_DEBET)}</div>
+        <div class="edit-row"><label>Kredit</label>${kontoSelect(r.id + '|account_kredit', 'account_kredit_name', kreditVal, KONTOPLAN_KREDIT)}</div>
         <span class="edit-status" id="status-${r.id}"></span>
       </div>` : '';
     return `
