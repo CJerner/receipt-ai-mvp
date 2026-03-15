@@ -241,10 +241,14 @@ h1 em { font-style: italic; color: var(--accent); }
 .receipt-amount { font-family: var(--serif); font-size: 1rem; color: var(--accent); }
 .receipt-amount-ex { font-size: .65rem; color: var(--muted); }
 
-.receipt-actions { display: flex; gap: .35rem; margin-top: .5rem; flex-wrap: wrap; }
-.btn-sm { font-family: var(--mono); font-size: .6rem; letter-spacing: .06em; text-transform: uppercase; padding: .2rem .5rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; white-space: nowrap; }
+.receipt-actions { display: flex; gap: .35rem; margin-top: .5rem; flex-wrap: nowrap; align-items: center; }
+.btn-sm { font-family: var(--mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; padding: .22rem .45rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; white-space: nowrap; }
 .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 .btn-sm.danger:hover { border-color: var(--error); color: var(--error); }
+.btn-approve { border-color: #276749 !important; color: #276749 !important; }
+.btn-approve:hover { background: #276749 !important; color: white !important; }
+.btn-reject { border-color: var(--error) !important; color: var(--error) !important; }
+.btn-reject:hover { background: var(--error) !important; color: white !important; }
 
 .image-panel { display: none; margin-top: .75rem; }
 .image-panel.open { display: block; }
@@ -799,13 +803,17 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
     const amountEx = r.amount && r.vat ? (Number(r.amount) - Number(r.vat)).toLocaleString('da-DK', { minimumFractionDigits: 2 }) + ' kr. ex. moms' : '';
     const date = r.date ? new Date(r.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     const editBtn = showEdit ? `
-      <button class="btn-sm" onclick="toggleEdit('${r.id}')">Rediger</button>
-      <button class="btn-sm" onclick="toggleImage('${r.id}')">Vis billede</button>
-      <button class="btn-sm danger" onclick="deleteReceipt('${r.id}')">Slet</button>
-      ${currentRole === 'admin' && r.status === 'pending' ? `
-      <button class="btn-sm" style="border-color:#276749;color:#276749" onclick="approveReceipt('${r.id}', 'approve')">✓ Godkend</button>
-      <button class="btn-sm danger" onclick="approveReceipt('${r.id}', 'reject')">✗ Afvis</button>` : ''}` : `
-      <button class="btn-sm" onclick="toggleImage('${r.id}')">Vis billede</button>`;
+      <div class="receipt-actions">
+        <button class="btn-sm" onclick="toggleEdit('${r.id}')">Rediger</button>
+        <button class="btn-sm" onclick="toggleImage('${r.id}')">Billede</button>
+        <button class="btn-sm danger" onclick="deleteReceipt('${r.id}')">Slet</button>
+        ${currentRole === 'admin' && r.status === 'pending' ? `
+        <button class="btn-sm btn-approve" onclick="approveReceipt('${r.id}', 'approve')">✓ Godkend</button>
+        <button class="btn-sm btn-reject" onclick="approveReceipt('${r.id}', 'reject')">✗ Afvis</button>` : ''}
+      </div>` : `
+      <div class="receipt-actions">
+        <button class="btn-sm" onclick="toggleImage('${r.id}')">Billede</button>
+      </div>`;
     const imageHtml = r.image_url ? `<div class="image-panel" id="img-${r.id}"><img src="${r.image_url}" alt="Kvittering" onclick="window.open('${r.image_url}', '_blank')"></div>` : '';
     const editHtml = showEdit ? `
       <div class="edit-panel" id="edit-${r.id}">
