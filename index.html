@@ -627,7 +627,7 @@ async function toggleAutoApprove() {
   const sw = document.getElementById('autoApproveSwitch');
   const dot = document.getElementById('autoApproveDot');
   const companyData = userCompanies.find(c => c.company.id === currentCompanyId);
-  if (!companyData) { alert('Ingen firma fundet: ' + currentCompanyId); return; }
+  if (!companyData) return;
 
   const newVal = !companyData.company.auto_approve;
   companyData.company.auto_approve = newVal;
@@ -636,13 +636,11 @@ async function toggleAutoApprove() {
   dot.style.transform = newVal ? 'translateX(18px)' : 'translateX(0)';
 
   const token = await getToken();
-  const res = await fetch('/api/company', {
+  await fetch('/api/company', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({ action: 'update-settings', company_id: currentCompanyId, auto_approve: newVal })
   });
-  const data = await res.json();
-  alert(JSON.stringify(data));
 }
 
 function showLogin() {
