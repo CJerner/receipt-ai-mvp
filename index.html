@@ -206,7 +206,7 @@ h1 em { font-style: italic; color: var(--accent); }
 .row-val.amount { color: var(--accent); font-size: 1.2rem; }
 
 /* TABS */
-.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
 .tab { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; padding: .6rem 1rem; border: none; background: transparent; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
 .tab.active { color: var(--ink); border-bottom-color: var(--accent); }
 .tab-panel { display: none; }
@@ -449,7 +449,6 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
       <button class="tab active" onclick="switchTab('aktuelle')">Aktuelle</button>
       <button class="tab" onclick="switchTab('historik')">Historik</button>
       <button class="tab" onclick="switchTab('overblik'); loadOverblik()">Overblik</button>
-      <button class="tab" id="brugerTab" style="display:none" onclick="switchTab('brugere'); loadBrugere()">Brugere</button>
     </div>
 
     <div class="tab-panel active" id="tab-aktuelle">
@@ -461,14 +460,6 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
       <div class="list-footer" id="footer-aktuelle" style="display:none">
         <span class="list-footer-label">Total inkl. moms</span>
         <span class="list-footer-total" id="total-aktuelle"></span>
-      </div>
-      <div class="invite-section" id="inviteBtn" style="display:none">
-        <p class="section-label">Inviter medarbejder</p>
-        <div class="invite-row">
-          <input class="invite-input" type="email" id="inviteEmail" placeholder="medarbejder@firma.dk">
-          <button class="invite-btn" onclick="inviteUser()">Send invitation</button>
-        </div>
-        <div id="inviteStatus" style="font-size:.75rem;margin-top:.5rem;display:none"></div>
       </div>
     </div>
 
@@ -492,9 +483,22 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
       </div>
       <div id="overblikContent"><p class="empty-state">Henter overblik...</p></div>
     </div>
+  </div>
 
-    <div class="tab-panel" id="tab-brugere">
-      <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
+  <!-- Admin sektion — kun synlig for admin -->
+  <div class="card" id="adminCard" style="display:none">
+    <p class="section-label" style="margin-bottom:1.25rem">Administration</p>
+
+    <p class="section-label" style="margin-bottom:.75rem">Brugere</p>
+    <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
+
+    <div class="invite-section">
+      <p class="section-label">Inviter medarbejder</p>
+      <div class="invite-row">
+        <input class="invite-input" type="email" id="inviteEmail" placeholder="medarbejder@firma.dk">
+        <button class="invite-btn" onclick="inviteUser()">Send invitation</button>
+      </div>
+      <div id="inviteStatus" style="font-size:.75rem;margin-top:.5rem;display:none"></div>
     </div>
   </div>
 
@@ -568,14 +572,14 @@ async function showApp(user) {
   const companyName = company?.name || user.user_metadata?.company_name || 'Finivo';
   document.getElementById('topbarCompany').textContent = companyName;
 
-  // Vis admin-only elementer
   const isAdmin = role === 'admin';
-  const inviteBtn = document.getElementById('inviteBtn');
   const bogforBtn = document.getElementById('bogforBtn');
-  const brugerTab = document.getElementById('brugerTab');
-  if (inviteBtn) inviteBtn.style.display = isAdmin ? 'block' : 'none';
+  const adminCard = document.getElementById('adminCard');
   if (bogforBtn) bogforBtn.style.display = isAdmin ? 'inline-block' : 'none';
-  if (brugerTab) brugerTab.style.display = isAdmin ? 'block' : 'none';
+  if (adminCard) {
+    adminCard.style.display = isAdmin ? 'block' : 'none';
+    if (isAdmin) loadBrugere();
+  }
 
   loadAll();
 }
