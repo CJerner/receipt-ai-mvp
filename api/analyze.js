@@ -129,14 +129,24 @@ Returner præcis dette JSON format:
       return res.status(500).json({ error: "AI returnerede ikke valid JSON", raw: content });
     }
 
-    // Hent brugerens firma og auto_approve indstilling
+    // Hent brugerens firma
     const { data: companyUser } = await supabase
       .from("company_users")
-      .select("company_id, companies(auto_approve)")
+      .select("company_id")
       .eq("user_id", user.id)
       .single();
 
-    const autoApprove = companyUser?.companies?.auto_approve || false;
+    // Hent auto_approve separat
+    let autoApprove = false;
+    if (companyUser?.company_id) {
+      const { data: companyData } = await supabase
+        .from("companies")
+        .select("auto_approve")
+        .eq("id", companyUser.company_id)
+        .single();
+      autoApprove = companyData?.auto_approve || false;
+    }
+
     const status = autoApprove ? "approved" : "pending";
 
     const { error: dbError } = await supabase.from("receipts").insert([{
