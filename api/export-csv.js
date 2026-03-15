@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     .from("receipts")
     .select("*")
     .eq("exported", false)
+    .eq("status", "approved")
     .order("date", { ascending: false });
 
   if (error) return res.status(500).json(error);
