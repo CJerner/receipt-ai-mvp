@@ -820,7 +820,11 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
         <div class="edit-row"><label>Leverandør</label><input value="${r.vendor || ''}" onchange="updateField('${r.id}', 'vendor', this.value, this)"></div>
         <div class="edit-row"><label>Kategori</label><input value="${r.category || ''}" onchange="updateField('${r.id}', 'category', this.value, this)"></div>
         <div class="edit-row"><label>Dato</label><input type="date" value="${r.date || ''}" onchange="updateField('${r.id}', 'date', this.value, this)"></div>
-        <div class="edit-row"><label>Konto</label><input value="${r.account || ''}" placeholder="fx 3000" onchange="updateField('${r.id}', 'account', this.value, this)"></div>
+        <div class="edit-row"><label>Beskrivelse</label><input value="${r.description || ''}" onchange="updateField('${r.id}', 'description', this.value, this)"></div>
+        <div class="edit-row"><label>Debet</label><input value="${r.account_debet || r.account || ''}" placeholder="fx 1410" onchange="updateField('${r.id}', 'account_debet', this.value, this)"></div>
+        <div class="edit-row"><label>Debet navn</label><input value="${r.account_debet_name || r.account_name || ''}" placeholder="fx Varekøb" onchange="updateField('${r.id}', 'account_debet_name', this.value, this)"></div>
+        <div class="edit-row"><label>Kredit</label><input value="${r.account_kredit || ''}" placeholder="fx 5810" onchange="updateField('${r.id}', 'account_kredit', this.value, this)"></div>
+        <div class="edit-row"><label>Kredit navn</label><input value="${r.account_kredit_name || ''}" placeholder="fx Bank" onchange="updateField('${r.id}', 'account_kredit_name', this.value, this)"></div>
         <span class="edit-status" id="status-${r.id}"></span>
       </div>` : '';
     return `
@@ -834,7 +838,9 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
             <span class="receipt-detail-item">${date}</span>
             ${amountEx ? `<span class="receipt-detail-item">${amountEx}</span>` : ''}
           </div>
-          ${r.category || r.account ? `<div style="margin-top:.15rem;">${r.category ? `<span class="receipt-detail-item">${r.category}</span>` : ''}${r.category && r.account ? ' · ' : ''}${r.account ? `<span class="receipt-detail-item">Konto ${r.account}</span>` : ''}</div>` : ''}
+          ${r.category || r.account_debet || r.account ? `<div style="margin-top:.15rem;color:var(--muted);font-size:.68rem;">
+            ${r.category || ''}${(r.category && (r.account_debet || r.account)) ? ' · ' : ''}${r.account_debet || r.account ? `D: ${r.account_debet || r.account}` : ''}${r.account_kredit ? ` / K: ${r.account_kredit}` : ''}
+          </div>` : ''}
         </div>
         <div class="receipt-actions">${editBtn}</div>
         ${imageHtml}
