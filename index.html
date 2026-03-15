@@ -529,12 +529,9 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
           <div style="font-size:.8rem;font-weight:500;">Auto-godkend</div>
           <div style="font-size:.68rem;color:var(--muted);margin-top:.15rem;">Kvitteringer godkendes automatisk ved upload</div>
         </div>
-        <label style="display:flex;align-items:center;cursor:pointer;gap:.5rem;">
-          <input type="checkbox" id="autoApproveToggle" onchange="updateAutoApprove(this.checked)" style="display:none;">
-          <div id="autoApproveSwitch" style="width:36px;height:20px;background:var(--border);border-radius:10px;position:relative;transition:background .2s;cursor:pointer;" onclick="document.getElementById('autoApproveToggle').click()">
-            <div id="autoApproveDot" style="width:16px;height:16px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
-          </div>
-        </label>
+        <div id="autoApproveSwitch" onclick="toggleAutoApprove()" style="width:40px;height:22px;background:var(--border);border-radius:11px;position:relative;transition:background .2s;cursor:pointer;flex-shrink:0;">
+          <div id="autoApproveDot" style="width:18px;height:18px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
+        </div>
       </div>
       <p class="section-label" style="margin-bottom:.75rem">Brugere</p>
       <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
@@ -607,13 +604,11 @@ function updateAdminUI(companyData) {
 
   // Sæt auto-approve toggle
   if (isAdmin && companyData.company?.auto_approve !== undefined) {
-    const toggle = document.getElementById('autoApproveToggle');
     const sw = document.getElementById('autoApproveSwitch');
     const dot = document.getElementById('autoApproveDot');
-    if (toggle) {
-      toggle.checked = companyData.company.auto_approve;
+    if (sw) {
       sw.style.background = companyData.company.auto_approve ? 'var(--accent)' : 'var(--border)';
-      dot.style.transform = companyData.company.auto_approve ? 'translateX(16px)' : 'translateX(0)';
+      dot.style.transform = companyData.company.auto_approve ? 'translateX(18px)' : 'translateX(0)';
     }
   }
 }
@@ -628,22 +623,24 @@ async function switchCompany(companyId) {
   loadAll();
 }
 
-async function updateAutoApprove(checked) {
+async function toggleAutoApprove() {
   const sw = document.getElementById('autoApproveSwitch');
   const dot = document.getElementById('autoApproveDot');
-  sw.style.background = checked ? 'var(--accent)' : 'var(--border)';
-  dot.style.transform = checked ? 'translateX(16px)' : 'translateX(0)';
+  const companyData = userCompanies.find(c => c.company.id === currentCompanyId);
+  if (!companyData) return;
+
+  const newVal = !companyData.company.auto_approve;
+  companyData.company.auto_approve = newVal;
+
+  sw.style.background = newVal ? 'var(--accent)' : 'var(--border)';
+  dot.style.transform = newVal ? 'translateX(18px)' : 'translateX(0)';
 
   const token = await getToken();
   await fetch('/api/company', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ action: 'update-settings', company_id: currentCompanyId, auto_approve: checked })
+    body: JSON.stringify({ action: 'update-settings', company_id: currentCompanyId, auto_approve: newVal })
   });
-
-  // Opdater lokalt
-  const companyData = userCompanies.find(c => c.company.id === currentCompanyId);
-  if (companyData) companyData.company.auto_approve = checked;
 }
 
 function showLogin() {
