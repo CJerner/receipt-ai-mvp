@@ -239,7 +239,20 @@ h1 em { font-style: italic; color: var(--accent); }
 .receipt-amount { font-family: var(--serif); font-size: 1rem; color: var(--accent); flex-shrink: 0; }
 
 .receipt-details { font-size: .68rem; color: var(--muted); margin-bottom: .5rem; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
-.receipt-detail-item { white-space: nowrap; }
+.receipt-detail-panel {
+  display: none;
+  margin: .5rem 0;
+  padding: .6rem .75rem;
+  background: var(--accent-light);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 2px 2px 0;
+  animation: fadeIn .15s ease;
+}
+.receipt-detail-panel.open { display: block; }
+.detail-row { display: flex; justify-content: space-between; gap: 1rem; padding: .2rem 0; }
+.detail-key { font-size: .65rem; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; flex-shrink: 0; }
+.detail-val { font-size: .75rem; color: var(--ink); text-align: right; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 .receipt-actions { display: flex; gap: .3rem; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
 .btn-sm { font-family: var(--mono); font-size: .58rem; letter-spacing: .04em; text-transform: uppercase; padding: .25rem .5rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
@@ -893,11 +906,11 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
       </div>` : '';
     return `
       <div class="receipt-item" id="item-${r.id}">
-        <div class="receipt-top">
+        <div class="receipt-top" onclick="toggleDetail('${r.id}')" style="cursor:pointer;">
           <div class="receipt-vendor">${r.vendor || 'Ukendt leverandør'}<span class="status-badge status-${r.status || 'pending'}">${r.status === 'approved' ? 'Godkendt' : r.status === 'rejected' ? 'Afvist' : 'Afventer'}</span></div>
           <div class="receipt-amount">${amount}</div>
         </div>
-        <div class="receipt-details">
+        <div class="receipt-details" onclick="toggleDetail('${r.id}')" style="cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;">
             <span class="receipt-detail-item">${date}</span>
             ${amountEx ? `<span class="receipt-detail-item">${amountEx}</span>` : ''}
@@ -906,11 +919,25 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
             ${r.category || ''}${(r.category && (r.account_debet || r.account)) ? ' · ' : ''}${r.account_debet || r.account ? `D: ${r.account_debet || r.account}` : ''}${r.account_kredit ? ` / K: ${r.account_kredit}` : ''}
           </div>` : ''}
         </div>
+        <div class="receipt-detail-panel" id="detail-${r.id}">
+          ${r.description ? `<div class="detail-row"><span class="detail-key">Beskrivelse</span><span class="detail-val">${r.description}</span></div>` : ''}
+          <div class="detail-row"><span class="detail-key">Beløb inkl. moms</span><span class="detail-val">${amount}</span></div>
+          ${r.vat ? `<div class="detail-row"><span class="detail-key">Moms (${r.vat_rate || 25}%)</span><span class="detail-val">${Number(r.vat).toLocaleString('da-DK', {minimumFractionDigits:2})} kr.</span></div>` : ''}
+          ${amountEx ? `<div class="detail-row"><span class="detail-key">Ex. moms</span><span class="detail-val">${amountEx}</span></div>` : ''}
+          ${r.payment_method ? `<div class="detail-row"><span class="detail-key">Betaling</span><span class="detail-val">${r.payment_method}</span></div>` : ''}
+          ${r.account_debet ? `<div class="detail-row"><span class="detail-key">Debet</span><span class="detail-val">${r.account_debet} — ${r.account_debet_name || ''}</span></div>` : ''}
+          ${r.account_kredit ? `<div class="detail-row"><span class="detail-key">Kredit</span><span class="detail-val">${r.account_kredit} — ${r.account_kredit_name || ''}</span></div>` : ''}
+        </div>
         <div class="receipt-actions">${editBtn}</div>
         ${imageHtml}
         ${editHtml}
       </div>`;
   }).join('');
+}
+
+function toggleDetail(id) {
+  const panel = document.getElementById('detail-' + id);
+  if (panel) panel.classList.toggle('open');
 }
 
 function toggleEdit(id) {
