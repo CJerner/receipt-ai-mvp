@@ -462,8 +462,8 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
       <button class="btn-remove" onclick="removeFile()">✕</button>
     </div>
 
-    <!-- Analyser knap — skjult indtil billede er valgt -->
-    <button class="btn-analyze" id="analyzeBtn" onclick="uploadReceipt()" style="display:none;margin-top:1rem;">
+    <!-- Analyser knap — fallback hvis auto-analyse fejler -->
+    <button class="btn-analyze" id="analyzeBtn" onclick="uploadReceipt()" style="display:none;margin-top:1rem;background:var(--accent-dark);">
       <span class="spinner" id="spinner"></span>
       <span id="btnText">Analyser kvittering</span>
     </button>
@@ -839,6 +839,8 @@ function handleFile(file) {
     document.getElementById('resultSection').style.display = 'none';
   };
   reader.readAsDataURL(file);
+  // Start analyse automatisk
+  setTimeout(() => uploadReceipt(), 300);
 }
 
 function removeFile() {
