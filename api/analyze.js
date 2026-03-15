@@ -61,7 +61,22 @@ REGLER:
 - Dato format: YYYY-MM-DD. Hvis kun måned/år, brug den 1. i måneden.
 - Leverandør: firmanavn uden CVR/adresse
 - Vælg kategori fra denne liste: Materialer, Værktøj, Brændstof, Bil og transport, Arbejdstøj og sikkerhed, Kontor og administration, Telefon og internet, Forsikring, Husleje og lokaler, Restauration og forplejning, Reparation og vedligehold, El og energi, Underleverandør, Andet
-- Kontoplan (dansk standard): Materialer=3000, Værktøj=3100, Brændstof=3200, Bil=3210, Arbejdstøj=3300, Kontor=4200, Telefon=4210, Forsikring=4300, Husleje=4100, Restauration=4400, Reparation=4500, Underleverandør=3500, Andet=4900
+- Kontoplan (dansk standard) — brug ALTID både konto nummer OG navn:
+  * Materialer/Varekøb = 1410 "Varekøb"
+  * Småanskaffelser/Værktøj under 13.800 kr = 2820 "Småanskaffelser"
+  * Større værktøj/maskiner = 1420 "Maskiner og inventar"
+  * Brændstof = 2230 "Brændstof"
+  * Bil/transport = 2220 "Bilomkostninger"
+  * Arbejdstøj = 2840 "Arbejdstøj"
+  * Kontor/papir = 2860 "Kontorartikler"
+  * Telefon/internet = 2870 "Telefon og internet"
+  * Forsikring = 2910 "Forsikringer"
+  * Husleje/lokaler = 2050 "Husleje"
+  * Restauration/forplejning = 2690 "Repræsentation"
+  * Reparation = 2290 "Reparation og vedligehold"
+  * Underleverandør = 1480 "Fremmed arbejde"
+  * El/vand/varme = 2060 "El, vand og varme"
+  * Andet = 2900 "Diverse omkostninger"
 - Betalingsmetode: Kort, Kontant, MobilePay, Faktura, Ukendt
 
 Returner præcis dette JSON format:
