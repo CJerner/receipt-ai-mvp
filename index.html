@@ -600,7 +600,7 @@ async function showApp(user) {
 
   // Hent firma og rolle
   const token = await getToken();
-  const r = await fetch('/api/get-company', { headers: { 'Authorization': `Bearer ${token}` } });
+  const r = await fetch('/api/company', { headers: { 'Authorization': `Bearer ${token}` } });
   const { company, role } = await r.json();
   currentRole = role;
 
@@ -685,10 +685,10 @@ async function signup() {
     // Opret firma automatisk ved signup
     if (data?.session && company) {
       const token = data.session.access_token;
-      await fetch('/api/create-company', {
+      await fetch('/api/company', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ name: company })
+        body: JSON.stringify({ action: 'create', name: company })
       });
     }
 
@@ -752,7 +752,7 @@ async function updateKonto(idAndField, nameField, value, selectEl) {
   const kontoplan = field.includes('kredit') ? KONTOPLAN_KREDIT : KONTOPLAN_DEBET;
   const navn = kontoplan[value] || '';
   const token = await getToken();
-  await fetch('/api/update-receipt', {
+  await fetch('/api/receipts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({ id, [field]: value, [nameField]: navn })
@@ -962,7 +962,7 @@ async function updateField(id, field, value, inputEl) {
   const statusEl = document.getElementById('status-' + id);
   try {
     const token = await getToken();
-    const res = await fetch('/api/update-receipt', {
+    const res = await fetch('/api/receipts', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ id, [field]: value })
     });
@@ -978,7 +978,7 @@ async function updateField(id, field, value, inputEl) {
 
 async function approveReceipt(id, action) {
   const token = await getToken();
-  const res = await fetch('/api/approve-receipt', {
+  const res = await fetch('/api/receipts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({ id, action })
@@ -997,10 +997,10 @@ async function inviteUser() {
   statusEl.textContent = 'Sender invitation...';
 
   const token = await getToken();
-  const res = await fetch('/api/invite-user', {
+  const res = await fetch('/api/company', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ email, role: 'member' })
+    body: JSON.stringify({ action: 'invite', email, role: 'member' })
   });
 
   if (res.ok) {
@@ -1017,9 +1017,9 @@ async function inviteUser() {
 async function deleteReceipt(id) {
   if (!confirm('Er du sikker på du vil slette denne kvittering?')) return;
   const token = await getToken();
-  await fetch('/api/delete-receipt', {
+  await fetch('/api/receipts', {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ id })
+    body: JSON.stringify({ id, action: 'delete' })
   });
   loadAll();
 }
@@ -1049,7 +1049,7 @@ async function loadBrugere() {
   liste.innerHTML = '<p class="empty-state">Henter...</p>';
   try {
     const token = await getToken();
-    const res = await fetch('/api/get-company-users', { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch('/api/company?action=users', { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) throw new Error();
     const users = await res.json();
 
@@ -1074,10 +1074,10 @@ async function loadBrugere() {
 async function changeRole(userId, newRole) {
   if (!confirm(`Skift rolle til ${newRole === 'admin' ? 'Admin' : 'Medarbejder'}?`)) return;
   const token = await getToken();
-  const res = await fetch('/api/update-user-role', {
+  const res = await fetch('/api/company', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ userId, role: newRole })
+    body: JSON.stringify({ action: 'update-role', userId, role: newRole })
   });
   if (res.ok) loadBrugere();
   else alert('Kunne ikke ændre rolle');
