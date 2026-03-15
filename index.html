@@ -937,7 +937,12 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
 
 function toggleDetail(id) {
   const panel = document.getElementById('detail-' + id);
-  if (panel) panel.classList.toggle('open');
+  const details = document.querySelector(`#item-${id} .receipt-details`);
+  if (panel) {
+    const isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open');
+    if (details) details.style.display = isOpen ? '' : 'none';
+  }
 }
 
 function toggleEdit(id) {
