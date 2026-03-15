@@ -310,6 +310,15 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 .invite-input { flex: 1; padding: .5rem .75rem; font-family: var(--mono); font-size: .8rem; border: 1px solid var(--border); background: var(--bg); border-radius: 2px; }
 .invite-btn { padding: .5rem 1rem; background: var(--accent); color: white; border: none; font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; border-radius: 2px; white-space: nowrap; }
 .invite-btn:hover { background: var(--accent-dark); }
+
+.user-item { display: flex; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid var(--border); gap: 1rem; }
+.user-item:last-child { border-bottom: none; }
+.user-email { font-size: .85rem; }
+.user-role-badge { font-family: var(--mono); font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; padding: .2rem .5rem; border-radius: 2px; }
+.role-admin { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent); }
+.role-member { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.btn-role { font-family: var(--mono); font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; padding: .2rem .5rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; }
+.btn-role:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -409,6 +418,16 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
       <span class="drop-label">Træk kvittering hertil</span>
       <span class="drop-hint">eller klik for at vælge · JPG, PNG, WEBP</span>
     </div>
+    <div style="display:flex;gap:.75rem;margin-top:.75rem;">
+      <label style="flex:1;padding:.7rem;background:var(--bg);border:1px solid var(--border);border-radius:2px;text-align:center;cursor:pointer;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">
+        📷 Kamera
+        <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this.files[0])">
+      </label>
+      <label style="flex:1;padding:.7rem;background:var(--bg);border:1px solid var(--border);border-radius:2px;text-align:center;cursor:pointer;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">
+        🖼 Vælg fil
+        <input type="file" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
+      </label>
+    </div>
     <div class="preview-wrap" id="previewWrap">
       <img id="previewImg" src="" alt="Preview">
       <button class="btn-remove" onclick="removeFile()">✕</button>
@@ -430,12 +449,13 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
       <button class="tab active" onclick="switchTab('aktuelle')">Aktuelle</button>
       <button class="tab" onclick="switchTab('historik')">Historik</button>
       <button class="tab" onclick="switchTab('overblik'); loadOverblik()">Overblik</button>
+      <button class="tab" id="brugerTab" style="display:none" onclick="switchTab('brugere'); loadBrugere()">Brugere</button>
     </div>
 
     <div class="tab-panel active" id="tab-aktuelle">
       <div class="list-header">
         <span class="total-badge" id="badge-aktuelle"></span>
-        <button class="btn-csv" onclick="handleExport()">↓ Eksport CSV</button>
+        <button class="btn-csv" id="bogforBtn" style="display:none" onclick="handleBogfor()">↑ Bogfør godkendte</button>
       </div>
       <div id="list-aktuelle"><p class="empty-state">Henter kvitteringer...</p></div>
       <div class="list-footer" id="footer-aktuelle" style="display:none">
@@ -455,6 +475,7 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
     <div class="tab-panel" id="tab-historik">
       <div class="list-header">
         <span class="total-badge" id="badge-historik"></span>
+        <button class="btn-csv" onclick="handleExport()">↓ Eksport CSV</button>
       </div>
       <div id="list-historik"><p class="empty-state">Henter historik...</p></div>
       <div class="list-footer" id="footer-historik" style="display:none">
@@ -470,6 +491,10 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
         <button class="period-btn" onclick="setPeriod('aar')">År</button>
       </div>
       <div id="overblikContent"><p class="empty-state">Henter overblik...</p></div>
+    </div>
+
+    <div class="tab-panel" id="tab-brugere">
+      <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
     </div>
   </div>
 
@@ -543,9 +568,14 @@ async function showApp(user) {
   const companyName = company?.name || user.user_metadata?.company_name || 'Finivo';
   document.getElementById('topbarCompany').textContent = companyName;
 
-  // Vis invite knap kun for admin
+  // Vis admin-only elementer
+  const isAdmin = role === 'admin';
   const inviteBtn = document.getElementById('inviteBtn');
-  if (inviteBtn) inviteBtn.style.display = role === 'admin' ? 'block' : 'none';
+  const bogforBtn = document.getElementById('bogforBtn');
+  const brugerTab = document.getElementById('brugerTab');
+  if (inviteBtn) inviteBtn.style.display = isAdmin ? 'block' : 'none';
+  if (bogforBtn) bogforBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  if (brugerTab) brugerTab.style.display = isAdmin ? 'block' : 'none';
 
   loadAll();
 }
@@ -874,6 +904,56 @@ async function deleteReceipt(id) {
     body: JSON.stringify({ id })
   });
   loadAll();
+}
+
+async function handleBogfor() {
+  if (!confirm('Bogfør alle godkendte kvitteringer?\nDe vil herefter flyttes til historik.')) return;
+  const token = await getToken();
+  const res = await fetch('/api/export-csv', { headers: { 'Authorization': `Bearer ${token}` } });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `finivo-bogfort-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  setTimeout(() => loadAll(), 1000);
+}
+
+async function loadBrugere() {
+  const liste = document.getElementById('brugereListe');
+  liste.innerHTML = '<p class="empty-state">Henter...</p>';
+  try {
+    const token = await getToken();
+    const res = await fetch('/api/get-company-users', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) throw new Error();
+    const users = await res.json();
+
+    liste.innerHTML = `
+      <div style="margin-bottom:1rem">
+        ${users.map(u => `
+          <div class="user-item">
+            <div>
+              <div class="user-email">${u.email}${u.isMe ? ' <span style="font-size:.65rem;color:var(--muted)">(dig)</span>' : ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span class="user-role-badge ${u.role === 'admin' ? 'role-admin' : 'role-member'}">${u.role === 'admin' ? 'Admin' : 'Medarbejder'}</span>
+              ${!u.isMe ? `<button class="btn-role" onclick="changeRole('${u.user_id}', '${u.role === 'admin' ? 'member' : 'admin'}')">${u.role === 'admin' ? '→ Medarbejder' : '→ Admin'}</button>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } catch {
+    liste.innerHTML = '<p class="empty-state">Kunne ikke hente brugere</p>';
+  }
+}
+
+async function changeRole(userId, newRole) {
+  if (!confirm(`Skift rolle til ${newRole === 'admin' ? 'Admin' : 'Medarbejder'}?`)) return;
+  const token = await getToken();
+  const res = await fetch('/api/update-user-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ userId, role: newRole })
+  });
+  if (res.ok) loadBrugere();
+  else alert('Kunne ikke ændre rolle');
 }
 
 async function handleExport() {
