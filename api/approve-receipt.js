@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   // Verificer admin rolle
   const { data: callerData } = await supabase
     .from("company_users")
-    .select("role")
+    .select("role, company_id")
     .eq("user_id", user.id)
     .single();
 
@@ -24,15 +24,17 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: "Kun admins kan godkende kvitteringer" });
   }
 
-  const { id, action } = req.body; // action: 'approve' eller 'reject'
+  const { id, action } = req.body;
   if (!id || !action) return res.status(400).json({ error: "id og action er påkrævet" });
 
   const status = action === "approve" ? "approved" : "rejected";
 
+  // Opdater kun kvitteringer der tilhører admin's firma
   const { error } = await supabase
     .from("receipts")
     .update({ status })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("company_id", callerData.company_id);
 
   if (error) return res.status(500).json({ error: error.message });
 
