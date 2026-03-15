@@ -428,7 +428,8 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 
   <div class="topbar" id="topbar">
     <div style="display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:var(--serif);font-size:1.1rem;color:var(--ink)" id="topbarCompany"></span>
+      <select id="companySwitcher" style="font-family:var(--serif);font-size:1rem;color:var(--ink);background:transparent;border:none;cursor:pointer;padding:0;-webkit-appearance:none;font-style:italic;" onchange="switchCompany(this.value)">
+      </select>
       <span class="topbar-user" id="topbarUser"></span>
     </div>
     <button class="btn-logout" onclick="logout()">Log ud</button>
@@ -523,6 +524,18 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
     </div>
 
     <div id="adminContent" style="display:none;margin-top:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid var(--border);margin-bottom:1rem;">
+        <div>
+          <div style="font-size:.8rem;font-weight:500;">Auto-godkend</div>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:.15rem;">Kvitteringer godkendes automatisk ved upload</div>
+        </div>
+        <label style="display:flex;align-items:center;cursor:pointer;gap:.5rem;">
+          <input type="checkbox" id="autoApproveToggle" onchange="updateAutoApprove(this.checked)" style="display:none;">
+          <div id="autoApproveSwitch" style="width:36px;height:20px;background:var(--border);border-radius:10px;position:relative;transition:background .2s;cursor:pointer;" onclick="document.getElementById('autoApproveToggle').click()">
+            <div id="autoApproveDot" style="width:16px;height:16px;background:white;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+          </div>
+        </label>
+      </div>
       <p class="section-label" style="margin-bottom:.75rem">Brugere</p>
       <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
 
@@ -582,6 +595,56 @@ let currentFile = null;
 let currentPeriod = 'dag';
 let currentUser = null;
 let currentRole = null;
+let currentCompanyId = null;
+let userCompanies = [];
+
+function updateAdminUI(companyData) {
+  const isAdmin = companyData.role === 'admin';
+  const bogforBtn = document.getElementById('bogforBtn');
+  const adminCard = document.getElementById('adminCard');
+  if (bogforBtn) bogforBtn.style.display = isAdmin ? 'inline-block' : 'none';
+  if (adminCard) adminCard.style.display = isAdmin ? 'block' : 'none';
+
+  // Sæt auto-approve toggle
+  if (isAdmin && companyData.company?.auto_approve !== undefined) {
+    const toggle = document.getElementById('autoApproveToggle');
+    const sw = document.getElementById('autoApproveSwitch');
+    const dot = document.getElementById('autoApproveDot');
+    if (toggle) {
+      toggle.checked = companyData.company.auto_approve;
+      sw.style.background = companyData.company.auto_approve ? 'var(--accent)' : 'var(--border)';
+      dot.style.transform = companyData.company.auto_approve ? 'translateX(16px)' : 'translateX(0)';
+    }
+  }
+}
+
+async function switchCompany(companyId) {
+  currentCompanyId = companyId;
+  const companyData = userCompanies.find(c => c.company.id === companyId);
+  if (companyData) {
+    currentRole = companyData.role;
+    updateAdminUI(companyData);
+  }
+  loadAll();
+}
+
+async function updateAutoApprove(checked) {
+  const sw = document.getElementById('autoApproveSwitch');
+  const dot = document.getElementById('autoApproveDot');
+  sw.style.background = checked ? 'var(--accent)' : 'var(--border)';
+  dot.style.transform = checked ? 'translateX(16px)' : 'translateX(0)';
+
+  const token = await getToken();
+  await fetch('/api/company', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ action: 'update-settings', company_id: currentCompanyId, auto_approve: checked })
+  });
+
+  // Opdater lokalt
+  const companyData = userCompanies.find(c => c.company.id === currentCompanyId);
+  if (companyData) companyData.company.auto_approve = checked;
+}
 
 function showLogin() {
   document.getElementById('loginSection').style.display = 'flex';
@@ -598,20 +661,23 @@ async function showApp(user) {
   document.getElementById('topbar').style.display = 'flex';
   document.getElementById('topbarUser').textContent = user.email;
 
-  // Hent firma og rolle
+  // Hent alle firmaer brugeren tilhører
   const token = await getToken();
-  const r = await fetch('/api/company', { headers: { 'Authorization': `Bearer ${token}` } });
-  const { company, role } = await r.json();
-  currentRole = role;
+  const r = await fetch('/api/company?action=all', { headers: { 'Authorization': `Bearer ${token}` } });
+  userCompanies = await r.json();
 
-  const companyName = company?.name || user.user_metadata?.company_name || 'Finivo';
-  document.getElementById('topbarCompany').textContent = companyName;
+  // Byg firma-dropdown
+  const switcher = document.getElementById('companySwitcher');
+  switcher.innerHTML = userCompanies.map(c =>
+    `<option value="${c.company.id}">${c.company.name}</option>`
+  ).join('');
 
-  const isAdmin = role === 'admin';
-  const bogforBtn = document.getElementById('bogforBtn');
-  const adminCard = document.getElementById('adminCard');
-  if (bogforBtn) bogforBtn.style.display = isAdmin ? 'inline-block' : 'none';
-  if (adminCard) adminCard.style.display = isAdmin ? 'block' : 'none';
+  // Sæt aktivt firma
+  if (userCompanies.length > 0) {
+    currentCompanyId = userCompanies[0].company.id;
+    currentRole = userCompanies[0].role;
+    updateAdminUI(userCompanies[0]);
+  }
 
   loadAll();
 }
@@ -884,7 +950,7 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
         <button class="btn-sm" onclick="toggleEdit('${r.id}')">Rediger</button>
         <button class="btn-sm" onclick="toggleImage('${r.id}')">Billede</button>
         <button class="btn-sm danger" onclick="deleteReceipt('${r.id}')">Slet</button>
-        ${currentRole === 'admin' && r.status === 'pending' ? `
+        ${currentRole === 'admin' && r.status === 'pending' && !userCompanies.find(c => c.company.id === currentCompanyId)?.company?.auto_approve ? `
         <button class="btn-sm btn-approve" onclick="approveReceipt('${r.id}', 'approve')">✓ Godkend</button>
         <button class="btn-sm btn-reject" onclick="approveReceipt('${r.id}', 'reject')">✗ Afvis</button>` : ''}
       </div>` : `
