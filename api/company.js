@@ -18,20 +18,44 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return res.status(401).json({ error: "Ugyldig session" });
 
-  // GET — hent firma og rolle
   if (req.method === "GET") {
     const { action } = req.query;
 
-    // Hent brugerliste (kun admin)
+    // Hent alle firmaer brugeren tilhører
+    if (action === "all") {
+      const { data, error } = await supabase
+        .from("company_users")
+        .select("role, companies(id, name, auto_approve)")
+        .eq("user_id", user.id);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json(data.map(d => ({
+        company: d.companies,
+        role: d.role
+      })));
+    }
+
+    // Hent brugerliste for specifikt firma (kun admin)
     if (action === "users") {
+      const { company_id } = req.query;
       const { data: callerData } = await supabase
-        .from("company_users").select("role, company_id").eq("user_id", user.id).single();
-      if (!callerData || callerData.role !== "admin")
+        .from("company_users")
+        .select("role, company_id")
+        .eq("user_id", user.id)
+        .eq("company_id", company_id || "")
+        .single();
+
+      // Fallback til første firma hvis company_id ikke angivet
+      const { data: anyCallerData } = !callerData ? await supabase
+        .from("company_users").select("role, company_id").eq("user_id", user.id).single()
+        : { data: callerData };
+
+      const effectiveCaller = callerData || anyCallerData;
+      if (!effectiveCaller || effectiveCaller.role !== "admin")
         return res.status(403).json({ error: "Kun admins kan se brugerliste" });
 
       const supabaseAdmin = getAdmin();
       const { data: companyUsers } = await supabaseAdmin
-        .from("company_users").select("user_id, role").eq("company_id", callerData.company_id);
+        .from("company_users").select("user_id, role").eq("company_id", effectiveCaller.company_id);
 
       const result = await Promise.all(
         companyUsers.map(async cu => {
@@ -42,9 +66,13 @@ export default async function handler(req, res) {
       return res.status(200).json(result);
     }
 
-    // Hent firma og rolle
-    const { data, error } = await supabase
-      .from("company_users").select("role, companies(id, name)").eq("user_id", user.id).single();
+    // Hent aktivt firma og rolle (med company_id query param)
+    const { company_id } = req.query;
+    let query = supabase.from("company_users").select("role, companies(id, name, auto_approve)").eq("user_id", user.id);
+    if (company_id) query = query.eq("company_id", company_id);
+    else query = query.limit(1);
+
+    const { data, error } = await query.single();
     if (error || !data) return res.status(200).json({ company: null, role: null });
     return res.status(200).json({ company: data.companies, role: data.role });
   }
@@ -67,8 +95,12 @@ export default async function handler(req, res) {
 
     // Inviter bruger
     if (action === "invite") {
+      const { company_id } = req.body;
       const { data: callerData } = await supabase
-        .from("company_users").select("role, company_id").eq("user_id", user.id).single();
+        .from("company_users").select("role, company_id")
+        .eq("user_id", user.id)
+        .eq("company_id", company_id)
+        .single();
       if (!callerData || callerData.role !== "admin")
         return res.status(403).json({ error: "Kun admins kan invitere brugere" });
 
@@ -89,8 +121,12 @@ export default async function handler(req, res) {
 
     // Opdater rolle
     if (action === "update-role") {
+      const { company_id } = req.body;
       const { data: callerData } = await supabase
-        .from("company_users").select("role, company_id").eq("user_id", user.id).single();
+        .from("company_users").select("role, company_id")
+        .eq("user_id", user.id)
+        .eq("company_id", company_id)
+        .single();
       if (!callerData || callerData.role !== "admin")
         return res.status(403).json({ error: "Kun admins kan ændre roller" });
 
@@ -101,6 +137,23 @@ export default async function handler(req, res) {
 
       const { error } = await supabase.from("company_users")
         .update({ role }).eq("user_id", userId).eq("company_id", callerData.company_id);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    // Opdater auto-godkend
+    if (action === "update-settings") {
+      const { company_id, auto_approve } = req.body;
+      const { data: callerData } = await supabase
+        .from("company_users").select("role")
+        .eq("user_id", user.id)
+        .eq("company_id", company_id)
+        .single();
+      if (!callerData || callerData.role !== "admin")
+        return res.status(403).json({ error: "Kun admins kan ændre indstillinger" });
+
+      const { error } = await supabase
+        .from("companies").update({ auto_approve }).eq("id", company_id);
       if (error) return res.status(500).json({ error: error.message });
       return res.status(200).json({ success: true });
     }
