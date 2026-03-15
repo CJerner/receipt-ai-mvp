@@ -487,18 +487,23 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 
   <!-- Admin sektion — kun synlig for admin -->
   <div class="card" id="adminCard" style="display:none">
-    <p class="section-label" style="margin-bottom:1.25rem">Administration</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleAdmin()">
+      <p class="section-label" style="margin-bottom:0">Administration</p>
+      <span id="adminToggleIcon" style="font-size:.8rem;color:var(--muted);font-family:var(--mono)">▼ vis</span>
+    </div>
 
-    <p class="section-label" style="margin-bottom:.75rem">Brugere</p>
-    <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
+    <div id="adminContent" style="display:none;margin-top:1.25rem;">
+      <p class="section-label" style="margin-bottom:.75rem">Brugere</p>
+      <div id="brugereListe"><p class="empty-state">Henter brugere...</p></div>
 
-    <div class="invite-section">
-      <p class="section-label">Inviter medarbejder</p>
-      <div class="invite-row">
-        <input class="invite-input" type="email" id="inviteEmail" placeholder="medarbejder@firma.dk">
-        <button class="invite-btn" onclick="inviteUser()">Send invitation</button>
+      <div class="invite-section">
+        <p class="section-label">Inviter medarbejder</p>
+        <div class="invite-row">
+          <input class="invite-input" type="email" id="inviteEmail" placeholder="medarbejder@firma.dk">
+          <button class="invite-btn" onclick="inviteUser()">Send invitation</button>
+        </div>
+        <div id="inviteStatus" style="font-size:.75rem;margin-top:.5rem;display:none"></div>
       </div>
-      <div id="inviteStatus" style="font-size:.75rem;margin-top:.5rem;display:none"></div>
     </div>
   </div>
 
@@ -576,10 +581,7 @@ async function showApp(user) {
   const bogforBtn = document.getElementById('bogforBtn');
   const adminCard = document.getElementById('adminCard');
   if (bogforBtn) bogforBtn.style.display = isAdmin ? 'inline-block' : 'none';
-  if (adminCard) {
-    adminCard.style.display = isAdmin ? 'block' : 'none';
-    if (isAdmin) loadBrugere();
-  }
+  if (adminCard) adminCard.style.display = isAdmin ? 'block' : 'none';
 
   loadAll();
 }
@@ -919,6 +921,15 @@ async function handleBogfor() {
   const a = document.createElement('a');
   a.href = url; a.download = `finivo-bogfort-${new Date().toISOString().slice(0,10)}.csv`; a.click();
   setTimeout(() => loadAll(), 1000);
+}
+
+function toggleAdmin() {
+  const content = document.getElementById('adminContent');
+  const icon = document.getElementById('adminToggleIcon');
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  icon.textContent = isOpen ? '▼ vis' : '▲ skjul';
+  if (!isOpen) loadBrugere();
 }
 
 async function loadBrugere() {
