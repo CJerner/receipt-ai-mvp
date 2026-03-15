@@ -7,7 +7,6 @@ export const config = { api: { bodyParser: false } };
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
 
-  // Auth
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Ikke autoriseret" });
 
@@ -44,7 +43,7 @@ export default async function handler(req, res) {
       console.error("Storage fejl:", storageError);
     }
 
-    // Send til OpenAI
+    // Send til OpenAI med optimeret prompt til håndværkere
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.OPENAI_API_KEY}` },
@@ -53,30 +52,43 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: `Du er en dansk bogholder. Analyser kvitteringsbilledet og returner KUN et JSON objekt uden markdown.
+            content: `Du er en erfaren dansk bogholder specialiseret i håndværks- og servicevirksomheder.
+Analyser kvitteringen/fakturaen grundigt og returner KUN et JSON objekt - ingen markdown, ingen forklaringer.
+
+REGLER:
+- Beløb skal altid være tal (ikke strenge). Brug punktum som decimaltegn internt men returner som tal.
+- Moms er typisk 25% i Danmark. Beregn: moms = beløb_inkl_moms / 1.25 * 0.25
+- Dato format: YYYY-MM-DD. Hvis kun måned/år, brug den 1. i måneden.
+- Leverandør: firmanavn uden CVR/adresse
+- Vælg kategori fra denne liste: Materialer, Værktøj, Brændstof, Bil og transport, Arbejdstøj og sikkerhed, Kontor og administration, Telefon og internet, Forsikring, Husleje og lokaler, Restauration og forplejning, Reparation og vedligehold, El og energi, Underleverandør, Andet
+- Kontoplan (dansk standard): Materialer=3000, Værktøj=3100, Brændstof=3200, Bil=3210, Arbejdstøj=3300, Kontor=4200, Telefon=4210, Forsikring=4300, Husleje=4100, Restauration=4400, Reparation=4500, Underleverandør=3500, Andet=4900
+- Betalingsmetode: Kort, Kontant, MobilePay, Faktura, Ukendt
+
+Returner præcis dette JSON format:
 {
   "dato": "YYYY-MM-DD",
   "leverandør": "firmanavn",
   "beløb_inkl_moms": 0.00,
   "moms": 0.00,
   "moms_procent": 25,
-  "kategori": "fx Transport / Kontor / Mad / Byggemarked",
-  "konto": "dansk standardkontoplan 4-cifret nummer",
-  "konto_navn": "fx Varekøb / Husleje / Rejseomkostninger",
-  "betalingsmetode": "Kort / Kontant / MobilePay",
-  "valuta": "DKK"
-}
-Hvis noget ikke kan aflæses, brug null.`
+  "kategori": "fra listen ovenfor",
+  "konto": "4-cifret nummer",
+  "konto_navn": "kontonavn",
+  "betalingsmetode": "Kort/Kontant/MobilePay/Faktura/Ukendt",
+  "valuta": "DKK",
+  "beskrivelse": "kort beskrivelse af hvad der er købt"
+}`
           },
           {
             role: "user",
             content: [
               { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: "high" } },
-              { type: "text", text: "Analyser kvitteringen og returner JSON." }
+              { type: "text", text: "Analyser og returner JSON. Hvis noget er ulæseligt, brug null." }
             ]
           }
         ],
-        max_tokens: 500
+        max_tokens: 600,
+        temperature: 0.1
       })
     });
 
@@ -112,7 +124,8 @@ Hvis noget ikke kan aflæses, brug null.`
       account_name:   receipt.konto_navn      || null,
       payment_method: receipt.betalingsmetode || null,
       currency:       receipt.valuta          || "DKK",
-      image_url:      imageUrl
+      image_url:      imageUrl,
+      description:    receipt.beskrivelse     || null
     }]);
 
     if (dbError) console.error("Supabase fejl:", dbError);
