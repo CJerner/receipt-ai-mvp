@@ -830,10 +830,11 @@ function renderList(receipts, listId, badgeId, footerId, totalId, showEdit) {
           <div class="receipt-amount">${amount}</div>
         </div>
         <div class="receipt-details">
-          ${date ? `<span class="receipt-detail-item">${date}</span>` : ''}
-          ${amountEx ? `<span class="receipt-detail-item">${amountEx}</span>` : ''}
-          ${r.category ? `<span class="receipt-detail-item">· ${r.category}</span>` : ''}
-          ${r.account ? `<span class="receipt-detail-item">· Konto ${r.account}</span>` : ''}
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span class="receipt-detail-item">${date}</span>
+            ${amountEx ? `<span class="receipt-detail-item">${amountEx}</span>` : ''}
+          </div>
+          ${r.category || r.account ? `<div style="margin-top:.15rem;">${r.category ? `<span class="receipt-detail-item">${r.category}</span>` : ''}${r.category && r.account ? ' · ' : ''}${r.account ? `<span class="receipt-detail-item">Konto ${r.account}</span>` : ''}</div>` : ''}
         </div>
         <div class="receipt-actions">${editBtn}</div>
         ${imageHtml}
