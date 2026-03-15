@@ -61,7 +61,8 @@ REGLER:
 - Dato format: YYYY-MM-DD. Hvis kun måned/år, brug den 1. i måneden.
 - Leverandør: firmanavn uden CVR/adresse
 - Vælg kategori fra denne liste: Materialer, Værktøj, Brændstof, Bil og transport, Arbejdstøj og sikkerhed, Kontor og administration, Telefon og internet, Forsikring, Husleje og lokaler, Restauration og forplejning, Reparation og vedligehold, El og energi, Underleverandør, Andet
-- Kontoplan (dansk standard) — brug ALTID både konto nummer OG navn:
+
+DEBET KONTOPLAN (omkostningskonto):
   * Materialer/Varekøb = 1410 "Varekøb"
   * Småanskaffelser/Værktøj under 13.800 kr = 2820 "Småanskaffelser"
   * Større værktøj/maskiner = 1420 "Maskiner og inventar"
@@ -77,6 +78,14 @@ REGLER:
   * Underleverandør = 1480 "Fremmed arbejde"
   * El/vand/varme = 2060 "El, vand og varme"
   * Andet = 2900 "Diverse omkostninger"
+
+KREDIT KONTOPLAN (modkonto — baseret på betalingsmetode):
+  * Kort/Dankort/Visa = 5810 "Bank"
+  * Kontant = 5820 "Kassekonto"
+  * MobilePay = 5810 "Bank"
+  * Faktura/ikke betalt endnu = 6010 "Leverandørgæld"
+  * Ukendt = 6010 "Leverandørgæld"
+
 - Betalingsmetode: Kort, Kontant, MobilePay, Faktura, Ukendt
 
 Returner præcis dette JSON format:
@@ -87,8 +96,10 @@ Returner præcis dette JSON format:
   "moms": 0.00,
   "moms_procent": 25,
   "kategori": "fra listen ovenfor",
-  "konto": "4-cifret nummer",
-  "konto_navn": "kontonavn",
+  "konto_debet": "4-cifret nummer",
+  "konto_debet_navn": "kontonavn",
+  "konto_kredit": "4-cifret nummer",
+  "konto_kredit_navn": "kontonavn",
   "betalingsmetode": "Kort/Kontant/MobilePay/Faktura/Ukendt",
   "valuta": "DKK",
   "beskrivelse": "kort beskrivelse af hvad der er købt"
@@ -126,21 +137,25 @@ Returner præcis dette JSON format:
       .single();
 
     const { error: dbError } = await supabase.from("receipts").insert([{
-      user_id:        user.id,
-      company_id:     companyUser?.company_id || null,
-      status:         "pending",
-      vendor:         receipt.leverandør      || null,
-      date:           receipt.dato            || null,
-      amount:         receipt.beløb_inkl_moms || null,
-      vat:            receipt.moms            || null,
-      vat_rate:       receipt.moms_procent    || null,
-      category:       receipt.kategori        || null,
-      account:        receipt.konto           || null,
-      account_name:   receipt.konto_navn      || null,
-      payment_method: receipt.betalingsmetode || null,
-      currency:       receipt.valuta          || "DKK",
-      image_url:      imageUrl,
-      description:    receipt.beskrivelse     || null
+      user_id:            user.id,
+      company_id:         companyUser?.company_id || null,
+      status:             "pending",
+      vendor:             receipt.leverandør        || null,
+      date:               receipt.dato              || null,
+      amount:             receipt.beløb_inkl_moms   || null,
+      vat:                receipt.moms              || null,
+      vat_rate:           receipt.moms_procent      || null,
+      category:           receipt.kategori          || null,
+      account:            receipt.konto_debet       || null,
+      account_name:       receipt.konto_debet_navn  || null,
+      account_debet:      receipt.konto_debet       || null,
+      account_debet_name: receipt.konto_debet_navn  || null,
+      account_kredit:     receipt.konto_kredit      || null,
+      account_kredit_name:receipt.konto_kredit_navn || null,
+      payment_method:     receipt.betalingsmetode   || null,
+      currency:           receipt.valuta            || "DKK",
+      image_url:          imageUrl,
+      description:        receipt.beskrivelse       || null
     }]);
 
     if (dbError) console.error("Supabase fejl:", dbError);
