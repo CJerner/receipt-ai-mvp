@@ -412,27 +412,27 @@ footer { margin-top: 3rem; font-size: .7rem; color: var(--muted); text-align: ce
 
   <!-- Upload kort -->
   <div class="card">
-    <div class="drop-zone" id="dropZone">
+    <!-- Kamera som primær knap på mobil -->
+    <label class="btn-analyze" style="cursor:pointer;margin-top:0;justify-content:center;gap:.5rem;">
+      📷 <span>Tag billede af kvittering</span>
+      <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this.files[0])">
+    </label>
+
+    <!-- Alternativ: vælg fil / drag drop -->
+    <div class="drop-zone" id="dropZone" style="margin-top:.75rem;">
       <input type="file" id="receiptImage" accept="image/*" onchange="handleFile(this.files[0])">
-      <span class="drop-icon">🧾</span>
-      <span class="drop-label">Træk kvittering hertil</span>
-      <span class="drop-hint">eller klik for at vælge · JPG, PNG, WEBP</span>
+      <span class="drop-icon" style="font-size:1.4rem;">🖼</span>
+      <span class="drop-label" style="font-size:.9rem;">Vælg fil fra galleri</span>
+      <span class="drop-hint">eller træk hertil · JPG, PNG, WEBP</span>
     </div>
-    <div style="display:flex;gap:.75rem;margin-top:.75rem;">
-      <label style="flex:1;padding:.7rem;background:var(--bg);border:1px solid var(--border);border-radius:2px;text-align:center;cursor:pointer;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">
-        📷 Kamera
-        <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this.files[0])">
-      </label>
-      <label style="flex:1;padding:.7rem;background:var(--bg);border:1px solid var(--border);border-radius:2px;text-align:center;cursor:pointer;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">
-        🖼 Vælg fil
-        <input type="file" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
-      </label>
-    </div>
+
     <div class="preview-wrap" id="previewWrap">
       <img id="previewImg" src="" alt="Preview">
       <button class="btn-remove" onclick="removeFile()">✕</button>
     </div>
-    <button class="btn-analyze" id="analyzeBtn" onclick="uploadReceipt()" disabled>
+
+    <!-- Analyser knap — skjult indtil billede er valgt -->
+    <button class="btn-analyze" id="analyzeBtn" onclick="uploadReceipt()" style="display:none;margin-top:1rem;">
       <span class="spinner" id="spinner"></span>
       <span id="btnText">Analyser kvittering</span>
     </button>
@@ -683,7 +683,7 @@ function handleFile(file) {
   reader.onload = e => {
     document.getElementById('previewImg').src = e.target.result;
     document.getElementById('previewWrap').style.display = 'block';
-    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('analyzeBtn').style.display = 'flex';
     document.getElementById('errorMsg').style.display = 'none';
     document.getElementById('resultSection').style.display = 'none';
   };
@@ -693,7 +693,7 @@ function handleFile(file) {
 function removeFile() {
   currentFile = null;
   document.getElementById('previewWrap').style.display = 'none';
-  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('analyzeBtn').style.display = 'none';
   document.getElementById('receiptImage').value = '';
   document.getElementById('resultSection').style.display = 'none';
   document.getElementById('errorMsg').style.display = 'none';
